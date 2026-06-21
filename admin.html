@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Nova Era Nutrition | Painel Administrativo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       TELA DE LOGIN
+  ============================================================ -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-card" id="login-card">
+      <!-- Logo -->
+      <div class="login-logo-wrap">
+        <img
+          src="692884723_17938911582224464_2704593366047550756_n.jpg"
+          alt="Nova Era Nutrition"
+          class="login-logo"
+          id="login-logo-img"
+        />
+      </div>
+
+      <div class="login-header">
+        <h1 class="login-title">Área Restrita</h1>
+        <p class="login-subtitle">Acesso exclusivo para administradores</p>
+      </div>
+
+      <form class="login-form" id="login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="login-user">Usuário</label>
+          <div class="input-wrap">
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            <input
+              type="text"
+              id="login-user"
+              class="form-input"
+              placeholder="Seu usuário"
+              autocomplete="username"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-pass">Senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input
+              type="password"
+              id="login-pass"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="toggle-pass" id="toggle-pass" aria-label="Mostrar senha">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-error" id="login-error" role="alert" aria-live="polite"></div>
+
+        <button type="submit" class="btn-login" id="login-submit-btn">
+          <span class="btn-login-text">Entrar no Painel</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+        </button>
+      </form>
+
+      <p class="login-hint">Dica: usuário <code>admin</code> / senha <code>admin123</code></p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAINEL ADMIN (oculto até login)
+  ============================================================ -->
+  <div class="admin-layout" id="admin-layout" hidden>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-logo-wrap">
+        <img
+          src="692884723_17938911582224464_2704593366047550756_n.jpg"
+          alt="Nova Era Nutrition"
+          class="sidebar-logo"
+          id="sidebar-logo-img"
+        />
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-name">Nova Era</span>
+          <span class="sidebar-brand-role">Administrador</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" role="navigation" aria-label="Menu administrativo">
+        <button class="sidebar-link active" data-view="dashboard" id="nav-dashboard" aria-current="page">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard
+        </button>
+        <button class="sidebar-link" data-view="products" id="nav-products-admin">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          Produtos
+        </button>
+        <button class="sidebar-link" data-view="add-product" id="nav-add-product">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          Novo Produto
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="index.html" class="sidebar-link sidebar-link--ghost" target="_blank" id="view-store-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          Ver Loja
+        </a>
+        <button class="sidebar-link sidebar-link--danger" id="logout-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main" id="admin-main">
+
+      <!-- Top bar -->
+      <header class="admin-topbar">
+        <button class="topbar-hamburger" id="topbar-hamburger" aria-label="Abrir menu lateral">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <h2 class="topbar-title" id="topbar-title">Dashboard</h2>
+        <div class="topbar-user">
+          <div class="topbar-avatar" aria-hidden="true">AD</div>
+          <span class="topbar-username">Administrador</span>
+        </div>
+      </header>
+
+      <!-- ── VIEW: DASHBOARD ───────────────────────────────── -->
+      <div class="admin-view" id="view-dashboard">
+        <div class="view-header">
+          <h2 class="view-title">Visão Geral</h2>
+          <p class="view-subtitle">Resumo do seu catálogo e estatísticas gerais.</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card" id="stat-total-products">
+            <div class="stat-card-icon stat-icon--red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-label">Total de Produtos</span>
+              <span class="stat-card-value" id="stat-count">0</span>
+            </div>
+          </div>
+          <div class="stat-card" id="stat-proteinas">
+            <div class="stat-card-icon stat-icon--green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-label">Proteínas</span>
+              <span class="stat-card-value" id="stat-proteina-count">0</span>
+            </div>
+          </div>
+          <div class="stat-card" id="stat-pretreino">
+            <div class="stat-card-icon stat-icon--red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-label">Pré-Treino</span>
+              <span class="stat-card-value" id="stat-pretreino-count">0</span>
+            </div>
+          </div>
+          <div class="stat-card" id="stat-aminoacido">
+            <div class="stat-card-icon stat-icon--green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.56 2.9A7 7 0 0 1 19 9v4"/><path d="M19 13a7 7 0 0 1-13.4 2.8"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-label">Aminoácidos</span>
+              <span class="stat-card-value" id="stat-aminoacido-count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product table preview -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3 class="admin-card-title">Produtos Recentes</h3>
+            <button class="btn-admin btn-admin--outline" data-view="products" id="see-all-products">Ver todos</button>
+          </div>
+          <div id="dashboard-table-wrap"></div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: LISTA DE PRODUTOS ──────────────────────── -->
+      <div class="admin-view hidden" id="view-products">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Gerenciar Produtos</h2>
+            <p class="view-subtitle">Edite, remova ou visualize todos os produtos da loja.</p>
+          </div>
+          <button class="btn-admin btn-admin--primary" data-view="add-product" id="go-add-product-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            Novo Produto
+          </button>
+        </div>
+
+        <div class="admin-card" style="overflow-x:auto">
+          <div id="products-table-wrap"></div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: FORM ADICIONAR / EDITAR PRODUTO ─────────── -->
+      <div class="admin-view hidden" id="view-add-product">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title" id="form-view-title">Novo Produto</h2>
+            <p class="view-subtitle" id="form-view-subtitle">Preencha os campos abaixo e clique em Salvar.</p>
+          </div>
+          <button class="btn-admin btn-admin--outline" onclick="AdminNav.go('products')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 5-7 7 7 7"/></svg>
+            Voltar
+          </button>
+        </div>
+
+        <div class="form-layout">
+          <!-- Formulário -->
+          <div class="admin-card form-card">
+            <form id="product-form" novalidate>
+              <input type="hidden" id="edit-product-id" />
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="prod-nome">Nome do Produto *</label>
+                  <input type="text" id="prod-nome" class="form-input" placeholder="Ex: Whey Protein Gold" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prod-categoria">Categoria *</label>
+                  <select id="prod-categoria" class="form-input form-select" required>
+                    <option value="">Selecione...</option>
+                    <option value="proteina">Proteína</option>
+                    <option value="pretreino">Pré-Treino</option>
+                    <option value="aminoacido">Aminoácido</option>
+                    <option value="recuperacao">Recuperação</option>
+                    <option value="vitaminas">Vitaminas</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="prod-descricao">Descrição *</label>
+                <textarea id="prod-descricao" class="form-input form-textarea" rows="4" placeholder="Descreva o produto, benefícios, modo de uso..." required></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="prod-preco">Preço (R$) *</label>
+                  <input type="number" id="prod-preco" class="form-input" placeholder="149.90" min="0" step="0.01" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prod-preco-antigo">Preço Antigo (R$) <span class="label-optional">opcional</span></label>
+                  <input type="number" id="prod-preco-antigo" class="form-input" placeholder="189.90" min="0" step="0.01" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="prod-badge">Badge <span class="label-optional">opcional</span></label>
+                  <input type="text" id="prod-badge" class="form-input" placeholder="Ex: Oferta, Novo, Top Vendas" maxlength="20" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prod-badge-tipo">Cor da Badge</label>
+                  <select id="prod-badge-tipo" class="form-input form-select">
+                    <option value="red">Vermelho</option>
+                    <option value="green">Verde</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="prod-imagem">URL da Imagem *</label>
+                <div class="input-wrap">
+                  <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <input type="url" id="prod-imagem" class="form-input" placeholder="https://... ou caminho local" required />
+                </div>
+                <p class="form-hint">Cole uma URL de imagem pública (Imgur, Unsplash, etc.) ou use um caminho local.</p>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="prod-estrelas">Estrelas (1–5)</label>
+                  <input type="number" id="prod-estrelas" class="form-input" value="5" min="1" max="5" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prod-avaliacoes">Nº de Avaliações</label>
+                  <input type="number" id="prod-avaliacoes" class="form-input" value="0" min="0" />
+                </div>
+              </div>
+
+              <div class="form-error" id="form-error" role="alert" aria-live="polite"></div>
+              <div class="form-success" id="form-success" role="status" aria-live="polite"></div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-admin btn-admin--outline" id="cancel-form-btn" onclick="AdminProducts.cancelEdit()">
+                  Cancelar
+                </button>
+                <button type="submit" class="btn-admin btn-admin--primary" id="save-product-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  Salvar Produto
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preview card -->
+          <div class="admin-card preview-card">
+            <h4 class="admin-card-title">Preview</h4>
+            <p class="form-hint" style="margin-bottom:1.25rem">Atualiza automaticamente</p>
+            <div id="product-preview"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Confirm delete modal -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-dialog" id="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-icon" aria-hidden="true">⚠️</div>
+      <h3 class="confirm-title" id="confirm-title">Excluir produto?</h3>
+      <p class="confirm-msg" id="confirm-msg">Esta ação não pode ser desfeita.</p>
+      <div class="confirm-actions">
+        <button class="btn-admin btn-admin--outline" id="confirm-cancel-btn">Cancelar</button>
+        <button class="btn-admin btn-admin--danger"  id="confirm-ok-btn">Sim, excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Toast -->
+  <div class="admin-toast" id="admin-toast" role="status" aria-live="polite">
+    <span class="admin-toast-icon" id="admin-toast-icon">✓</span>
+    <span class="admin-toast-text" id="admin-toast-text">Salvo!</span>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
