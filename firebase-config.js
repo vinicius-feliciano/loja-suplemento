@@ -15,12 +15,12 @@
 // 1. CREDENCIAIS DO FIREBASE  ← EDITE AQUI
 // ──────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            "COLE_SUA_API_KEY_AQUI",
-  authDomain:        "SEU-PROJETO.firebaseapp.com",
-  projectId:         "SEU-PROJETO",
-  storageBucket:     "SEU-PROJETO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:xxxxxxxxxxxxxxxx",
+  apiKey: "AIzaSyAAa8ZHO57d4IiknXymNVC8ciR1hKYwW9k",
+  authDomain: "nova-era-nutrition.firebaseapp.com",
+  projectId: "nova-era-nutrition",
+  storageBucket: "nova-era-nutrition.firebasestorage.app",
+  messagingSenderId: "708464446267",
+  appId: "1:708464446267:web:1495a2f6722422a300851e"
 };
 
 // ──────────────────────────────────────────────
@@ -28,7 +28,7 @@ const firebaseConfig = {
 // ──────────────────────────────────────────────
 const LOJA_CONFIG = {
   /** Número WhatsApp para checkout (DDI+DDD+número, sem + ou espaços) */
-  whatsappNumero:    '5511999999999',
+  whatsappNumero:    '5516993998499',
 
   /** Valor mínimo em R$ para frete grátis */
   freteGratisMinimo: 199,
