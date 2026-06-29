@@ -89,13 +89,16 @@ function initFirestoreProducts() {
   showLoadingGrid(grid);
 
   try {
+    // Busca simples sem índice composto — filtra "ativo" no cliente
     unsubProducts = db
       .collection('produtos')
-      .where('ativo', '==', true)
       .orderBy('criadoEm', 'desc')
       .onSnapshot(
         (snapshot) => {
-          produtosCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          // Filtra produtos ativos localmente (evita precisar de índice composto no Firebase)
+          produtosCache = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(p => p.ativo !== false);
           renderProducts(currentFilter);
         },
         (err) => showErrorGrid(grid, err)
