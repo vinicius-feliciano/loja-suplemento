@@ -571,11 +571,21 @@ const ProductForm = {
       document.getElementById(id)?.addEventListener('change', () => this.updatePreview());
     });
 
-    ImageUpload.init();
+    // Live preview for image fields
+    ['prod-imagem-1','prod-imagem-2','prod-imagem-3','prod-imagem-4'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => this.updatePreview());
+    });
     this.reset();
   },
 
   getFieldValues() {
+    const imagens = [
+      document.getElementById('prod-imagem-1')?.value.trim(),
+      document.getElementById('prod-imagem-2')?.value.trim(),
+      document.getElementById('prod-imagem-3')?.value.trim(),
+      document.getElementById('prod-imagem-4')?.value.trim(),
+    ].filter(Boolean);
+
     return {
       nome:        document.getElementById('prod-nome')?.value.trim()          || '',
       descricao:   document.getElementById('prod-descricao')?.value.trim()     || '',
@@ -586,6 +596,8 @@ const ProductForm = {
       badgeTipo:   document.getElementById('prod-badge-tipo')?.value           || 'red',
       estrelas:    parseInt(document.getElementById('prod-estrelas')?.value)   || 5,
       avaliacoes:  parseInt(document.getElementById('prod-avaliacoes')?.value) || 0,
+      imagem:      imagens[0] || '',   // campo principal (retrocompatível)
+      imagens:     imagens,            // array com até 4 imagens
     };
   },
 
@@ -594,10 +606,7 @@ const ProductForm = {
     if (!data.categoria)              return 'Selecione uma categoria.';
     if (!data.descricao)              return 'Preencha a descrição.';
     if (!data.preco || data.preco<=0) return 'Informe um preço válido.';
-    // Imagem: pode ser URL ou arquivo selecionado
-    const hasUrl  = !!document.getElementById('prod-imagem-url')?.value.trim();
-    const hasFile = !!ImageUpload.currentFile;
-    if (!hasUrl && !hasFile) return 'Forneça a URL ou selecione um arquivo de imagem.';
+    if (!data.imagem)                 return 'Adicione pelo menos a URL da Imagem 1 (principal).';
     return null;
   },
 
@@ -615,19 +624,8 @@ const ProductForm = {
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Salvando…'; }
 
     try {
-      let imageUrl = document.getElementById('prod-imagem-url')?.value.trim() || '';
-
-      if (ImageUpload.currentFile) {
-        // Upload para o Storage
-        const tempId = this.editId || generateTempId();
-        const uploadedUrl = await ImageUpload.upload(tempId);
-        if (!uploadedUrl) throw new Error('Falha no upload da imagem. Tente novamente.');
-        imageUrl = uploadedUrl;
-      }
-
-      if (!imageUrl) throw new Error('Imagem obrigatória.');
-
-      const productData = { ...data, imagem: imageUrl };
+      const productData = { ...data };
+      if (!productData.imagem) throw new Error('Adicione pelo menos a URL da Imagem 1.');
 
       if (this.isEditing && this.editId) {
         await FSProducts.update(this.editId, productData);
@@ -670,9 +668,12 @@ const ProductForm = {
     set('prod-estrelas',     p.estrelas    || 5);
     set('prod-avaliacoes',   p.avaliacoes  || 0);
 
-    // Imagem atual como URL
-    ImageUpload.setMode('url');
-    set('prod-imagem-url', p.imagem || '');
+    // Carregar imagens
+    const imagens = p.imagens?.length ? p.imagens : [p.imagem || ''];
+    set('prod-imagem-1', imagens[0] || '');
+    set('prod-imagem-2', imagens[1] || '');
+    set('prod-imagem-3', imagens[2] || '');
+    set('prod-imagem-4', imagens[3] || '');
 
     const titleEl    = document.getElementById('form-view-title');
     const subtitleEl = document.getElementById('form-view-subtitle');
@@ -691,7 +692,11 @@ const ProductForm = {
     this.editId    = null;
 
     document.getElementById('product-form')?.reset();
-    ImageUpload.reset();
+    // Reset image fields
+    ['prod-imagem-1','prod-imagem-2','prod-imagem-3','prod-imagem-4'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
 
     const titleEl    = document.getElementById('form-view-title');
     const subtitleEl = document.getElementById('form-view-subtitle');
@@ -709,7 +714,7 @@ const ProductForm = {
     if (!wrap) return;
 
     const d        = this.getFieldValues();
-    const imageUrl = ImageUpload.getPreviewUrl();
+    const imageUrl = document.getElementById('prod-imagem-1')?.value.trim() || '';
 
     if (!d.nome && !imageUrl) {
       wrap.innerHTML = `<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:1.5rem 0">Preencha o formulário para ver o preview.</div>`;

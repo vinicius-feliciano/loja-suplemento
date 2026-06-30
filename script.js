@@ -257,14 +257,13 @@ const Modal = {
       ? `<span class="modal-price-old">${formatPrice(p.precoAntigo)}</span>` : '';
 
     this.body.innerHTML = `
-      <div class="modal-image-col">
-        <img
-          src="${p.imagem || ''}"
-          alt="${p.nome}"
-          class="modal-product-img"
-          onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22400%22><rect fill=%22%231a1a1a%22 width=%22400%22 height=%22400%22/></svg>'"
-        />
-        ${p.badge ? `<div class="modal-badge badge--${p.badgeTipo || 'red'}">${p.badge}</div>` : ''}
+      <div class="carousel" id="product-carousel" aria-live="polite">
+        <button class="carousel-arrow left" aria-label="Previous image"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div class="carousel-track"></div>
+        <button class="carousel-arrow right" aria-label="Next image"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <div class="carousel-dots"></div>
+      </div>
+      ${p.badge ? `<div class="modal-badge badge--${p.badgeTipo || 'red'}">${p.badge}</div>` : ''}
       </div>
       <div class="modal-info-col">
         <span class="product-category">${p.categoria || ''}</span>
@@ -288,6 +287,35 @@ const Modal = {
           <li>↩️ 7 dias para devolução</li>
         </ul>
       </div>`;
+
+          // Populate carousel with product images
+          const carouselTrack = this.body.querySelector('.carousel-track');
+          const carouselDots = this.body.querySelector('.carousel-dots');
+          const images = (p.imagens && p.imagens.length) ? p.imagens : [p.imagem];
+          images.forEach((src, idx) => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'modal-product-img';
+            img.alt = `${p.nome} - imagem ${idx + 1}`;
+            carouselTrack.appendChild(img);
+
+            const dot = document.createElement('button');
+            dot.className = 'carousel-dot';
+            if (idx === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => showSlide(idx));
+            carouselDots.appendChild(dot);
+          });
+
+          let currentIndex = 0;
+          const showSlide = (index) => {
+            currentIndex = (index + images.length) % images.length;
+            carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
+            const dots = carouselDots.querySelectorAll('.carousel-dot');
+            dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+          };
+
+          this.body.querySelector('.carousel-arrow.left').addEventListener('click', () => showSlide(currentIndex - 1));
+          this.body.querySelector('.carousel-arrow.right').addEventListener('click', () => showSlide(currentIndex + 1));
 
     document.getElementById('modal-add-btn')?.addEventListener('click', () => {
       Cart.add(productId);
@@ -334,7 +362,7 @@ const Cart = {
     document.getElementById('cart-btn')?.addEventListener('click', () => this.open());
     document.getElementById('cart-close-btn')?.addEventListener('click', () => this.close());
     this.overlay?.addEventListener('click', () => this.close());
-    document.getElementById('checkout-btn')?.addEventListener('click', () => Checkout.send());
+    document.getElementById('checkout-btn')?.addEventListener('click', () => CheckoutForm.open());
     document.getElementById('clear-cart-btn')?.addEventListener('click', () => {
       if (confirm('Deseja limpar o carrinho?')) this.clear();
     });
@@ -450,10 +478,79 @@ const Cart = {
 };
 
 /* ============================================================
-   5. CHECKOUT — WhatsApp
+   5. CHECKOUT FORM — Coleta dados do cliente
+   ============================================================ */
+const CheckoutForm = {
+  init() {
+    const overlay  = document.getElementById('checkout-form-overlay');
+    const closeBtn = document.getElementById('checkout-form-close');
+    const form     = document.getElementById('checkout-customer-form');
+    const cpfInput = document.getElementById('checkout-cpf');
+    const cepInput = document.getElementById('checkout-cep');
+
+    // Máscara CPF
+    cpfInput?.addEventListener('input', () => {
+      let v = cpfInput.value.replace(/\D/g, '').substring(0, 11);
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+      v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+      cpfInput.value = v;
+    });
+
+    // Máscara CEP
+    cepInput?.addEventListener('input', () => {
+      let v = cepInput.value.replace(/\D/g, '').substring(0, 8);
+      v = v.replace(/(\d{5})(\d)/, '$1-$2');
+      cepInput.value = v;
+    });
+
+    closeBtn?.addEventListener('click', () => this.close());
+    overlay?.addEventListener('click', e => { if (e.target === overlay) this.close(); });
+    form?.addEventListener('submit', e => { e.preventDefault(); this.confirm(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && overlay?.classList.contains('open')) this.close();
+    });
+  },
+
+  open() {
+    const items = Cart.getItems();
+    if (items.length === 0) { Cart.showToast('Adicione produtos ao carrinho primeiro!'); return; }
+    const overlay = document.getElementById('checkout-form-overlay');
+    overlay?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('checkout-customer-form')?.reset();
+    const errEl = document.getElementById('checkout-form-error');
+    if (errEl) errEl.textContent = '';
+  },
+
+  close() {
+    document.getElementById('checkout-form-overlay')?.classList.remove('open');
+    document.body.style.overflow = '';
+  },
+
+  confirm() {
+    const nome     = document.getElementById('checkout-nome')?.value.trim();
+    const cpf      = document.getElementById('checkout-cpf')?.value.trim();
+    const endereco = document.getElementById('checkout-endereco')?.value.trim();
+    const cidade   = document.getElementById('checkout-cidade')?.value.trim();
+    const cep      = document.getElementById('checkout-cep')?.value.trim();
+    const errEl    = document.getElementById('checkout-form-error');
+
+    if (!nome || !cpf || !endereco || !cidade) {
+      if (errEl) errEl.textContent = '⚠️ Preencha todos os campos obrigatórios.';
+      return;
+    }
+
+    this.close();
+    Checkout.send({ nome, cpf, endereco, cidade, cep });
+  },
+};
+
+/* ============================================================
+   5B. CHECKOUT — WhatsApp
    ============================================================ */
 const Checkout = {
-  send() {
+  send(cliente = null) {
     const items = Cart.getItems();
     if (items.length === 0) { Cart.showToast('Adicione produtos ao carrinho primeiro!'); return; }
 
@@ -463,6 +560,17 @@ const Checkout = {
 
     let msg  = `🦍 *${LOJA_CONFIG?.nomeNegocio || 'Nova Era Nutrition'} — Novo Pedido*\n`;
     msg     += `📅 ${date}\n\n`;
+
+    if (cliente) {
+      msg += `━━━━━━━━━━━━━━━━━━━━━━━\n*DADOS DO CLIENTE:*\n\n`;
+      msg += `👤 Nome: ${cliente.nome}\n`;
+      msg += `📋 CPF: ${cliente.cpf}\n`;
+      msg += `📍 Endereço: ${cliente.endereco}\n`;
+      msg += `🏙️ Cidade: ${cliente.cidade}\n`;
+      if (cliente.cep) msg += `📮 CEP: ${cliente.cep}\n`;
+      msg += '\n';
+    }
+
     msg     += `━━━━━━━━━━━━━━━━━━━━━━━\n*ITENS DO PEDIDO:*\n\n`;
 
     items.forEach((item, i) => {
@@ -661,6 +769,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   Modal.init();
   Cart.init();
+  CheckoutForm.init();
+
+  // Set footer WhatsApp link dynamically
+  const waLink = document.getElementById('social-whatsapp');
+  if (waLink && typeof WHATSAPP_NUMBER !== 'undefined') {
+    waLink.href = `https://wa.me/${WHATSAPP_NUMBER}`;
+  }
 
   initHeader();
   initMobileMenu();
