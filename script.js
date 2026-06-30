@@ -190,7 +190,8 @@ function renderProducts(filter = 'all') {
     return;
   }
 
-  grid.innerHTML = filtered.map(buildProductCard).join('');
+  const displayed = showAllProducts ? filtered : filtered.slice(0, 6);
+  grid.innerHTML = displayed.map(buildProductCard).join('');
 
   // Re-observar novos cards para animação
   if (scrollObserver) {
@@ -207,6 +208,18 @@ function renderProducts(filter = 'all') {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); Modal.open(card.dataset.id); }
     });
   });
+
+  // Show "Ver todos" button when not all products are displayed
+  if (!showAllProducts && filtered.length > 6) {
+    const btnDiv = document.createElement('div');
+    btnDiv.className = 'view-all-container';
+    btnDiv.innerHTML = `<button class="btn btn-primary btn-sm" id="view-all-btn">Ver todos os produtos</button>`;
+    grid.parentNode.appendChild(btnDiv);
+    document.getElementById('view-all-btn').addEventListener('click', () => {
+      showAllProducts = true;
+      renderProducts(filter);
+    });
+  }
 
   // 3D tilt
   initCardGlow(grid.querySelectorAll('.product-card'));
