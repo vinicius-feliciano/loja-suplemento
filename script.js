@@ -60,6 +60,7 @@ let produtosCache   = [];
 let currentFilter   = 'all';
 let unsubProducts   = null;   // cleanup handle
 let scrollObserver  = null;
+let showAllProducts = false; // control product list display
 
 function showLoadingGrid(grid) {
   grid.innerHTML = `
@@ -190,15 +191,16 @@ function renderProducts(filter = 'all') {
     return;
   }
 
+  // Determine which products to display
   const displayed = showAllProducts ? filtered : filtered.slice(0, 6);
   grid.innerHTML = displayed.map(buildProductCard).join('');
 
-  // Re-observar novos cards para animação
+  // Observe new cards for scroll animations
   if (scrollObserver) {
     grid.querySelectorAll('.animate-on-scroll').forEach(el => scrollObserver.observe(el));
   }
 
-  // Click para modal
+  // Attach modal open handlers
   grid.querySelectorAll('.product-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.add-to-cart-btn')) return;
@@ -208,6 +210,12 @@ function renderProducts(filter = 'all') {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); Modal.open(card.dataset.id); }
     });
   });
+
+  // Clean up any previous "Ver todos" button
+  const existingBtn = document.getElementById('view-all-btn');
+  if (existingBtn) {
+    existingBtn.parentNode.remove();
+  }
 
   // Show "Ver todos" button when not all products are displayed
   if (!showAllProducts && filtered.length > 6) {
@@ -220,6 +228,8 @@ function renderProducts(filter = 'all') {
       renderProducts(filter);
     });
   }
+
+
 
   // 3D tilt
   initCardGlow(grid.querySelectorAll('.product-card'));
