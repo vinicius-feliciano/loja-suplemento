@@ -76,7 +76,7 @@ function showErrorGrid(grid, err) {
     <div style="grid-column:1/-1;text-align:center;padding:4rem 1rem;color:var(--text-muted)">
       <div style="font-size:2.5rem;margin-bottom:1rem">⚠️</div>
       <p style="font-size:1rem;font-weight:600;color:var(--text-primary)">Não foi possível carregar os produtos</p>
-      <p style="font-size:.85rem;margin-top:.5rem">Verifique sua conexão ou as configurações do Firebase.</p>
+      <p style="font-size:.85rem;margin-top:.5rem">Verifique se o servidor Node.js está em execução.</p>
       <button onclick="location.reload()" style="margin-top:1.5rem;padding:.6rem 1.5rem;background:var(--red);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
         Tentar novamente
       </button>
@@ -89,23 +89,52 @@ function initFirestoreProducts() {
 
   showLoadingGrid(grid);
 
-  try {
-    // Busca simples sem índice composto — filtra "ativo" no cliente
-    unsubProducts = db
-      .collection('produtos')
-      .orderBy('criadoEm', 'desc')
-      .onSnapshot(
-        (snapshot) => {
-          // Filtra produtos ativos localmente (evita precisar de índice composto no Firebase)
-          produtosCache = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(p => p.ativo !== false);
+  // 1. Tenta carregar os dados via Backend Node.js
+  if (typeof API !== 'undefined') {
+    API.getProducts({ ativo: true })
+      .then(products => {
+        if (Array.isArray(products) && products.length > 0) {
+          produtosCache = products.map(p => (typeof ImageBackend !== 'undefined') ? ImageBackend.normalizeProduct(p) : p);
           renderProducts(currentFilter);
-        },
-        (err) => showErrorGrid(grid, err)
-      );
-  } catch (err) {
-    showErrorGrid(grid, err);
+          loadCategoriesForFilters();
+          console.log(`[Node.js API] ${produtosCache.length} produtos carregados com sucesso.`);
+          return;
+        }
+        fallbackToFirestore();
+      })
+      .catch(err => {
+        console.warn('[Node.js API] Offline ou indisponível, usando contingência Firestore:', err.message);
+        fallbackToFirestore();
+      });
+  } else {
+    fallbackToFirestore();
+  }
+
+  function fallbackToFirestore() {
+    if (typeof db !== 'undefined' && db) {
+      try {
+        unsubProducts = db
+          .collection('produtos')
+          .orderBy('criadoEm', 'desc')
+          .onSnapshot(
+            (snapshot) => {
+              produtosCache = snapshot.docs
+                .map(doc => {
+                  const data = { id: doc.id, ...doc.data() };
+                  return (typeof ImageBackend !== 'undefined') ? ImageBackend.normalizeProduct(data) : data;
+                })
+                .filter(p => p.ativo !== false);
+              renderProducts(currentFilter);
+              updateFiltersFromProducts();
+            },
+            (err) => showErrorGrid(grid, err)
+          );
+      } catch (err) {
+        showErrorGrid(grid, err);
+      }
+    } else {
+      showErrorGrid(grid, new Error('Servidor offline. Inicie o Node.js com npm start.'));
+    }
   }
 }
 
@@ -122,6 +151,12 @@ function buildProductCard(p) {
   const oldPriceHTML = p.precoAntigo
     ? `<span class="product-price-old">${formatPrice(p.precoAntigo)}</span>` : '';
 
+  // Contagem de fotos caso tenha mais de 1 foto individual
+  const countBadgeHTML = (p.imagens && p.imagens.length > 1)
+    ? `<div class="product-photos-count" title="${p.imagens.length} fotos disponíveis">📷 ${p.imagens.length}</div>` : '';
+
+  const imgUrl = p.imagem || ((typeof ImageBackend !== 'undefined') ? ImageBackend.getPlaceholderSvg() : '');
+
   return `
     <article
       class="product-card animate-on-scroll"
@@ -134,12 +169,13 @@ function buildProductCard(p) {
     >
       ${badgeHTML}
       <div class="product-image-wrap">
+        ${countBadgeHTML}
         <img
-          src="${p.imagem || ''}"
+          src="${imgUrl}"
           alt="${p.nome} – Nova Era Nutrition"
           class="product-image"
           loading="lazy"
-          onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%231a1a1a%22 width=%22400%22 height=%22300%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23444%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2218%22>Sem imagem</text></svg>'"
+          onerror="if(typeof ImageBackend!=='undefined'){ImageBackend.handleImgError(this, '${p.imagem || ''}');}else{this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%231a1a1a%22 width=%22400%22 height=%22300%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23444%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2218%22>Sem imagem</text></svg>';}"
         />
         <div class="product-image-glow ${glowClass}"></div>
       </div>
@@ -238,18 +274,117 @@ function renderProducts(filter = 'all') {
 /* ============================================================
    FILTER
    ============================================================ */
+const DEFAULT_CATEGORIES = [
+  { slug: 'proteina',   nome: 'Proteínas' },
+  { slug: 'pretreino',  nome: 'Pré-Treino' },
+  { slug: 'aminoacido', nome: 'Aminoácidos' },
+  { slug: 'creatina',   nome: 'Creatina' },
+  { slug: 'vitamina',   nome: 'Vitaminas' },
+  { slug: 'queimador',  nome: 'Queimadores' },
+  { slug: 'outro',      nome: 'Outros' }
+];
+
+let categoriasCache = [...DEFAULT_CATEGORIES];
+
+async function loadCategoriesForFilters() {
+  try {
+    if (typeof API !== 'undefined') {
+      const cats = await API.getCategories();
+      if (Array.isArray(cats) && cats.length > 0) {
+        // Mescla garantindo que categorias padrões e novas fiquem presentes
+        const map = new Map();
+        DEFAULT_CATEGORIES.forEach(c => map.set(c.slug, c));
+        cats.forEach(c => map.set(c.slug || c, { slug: c.slug || c, nome: c.nome || c.slug || c }));
+        categoriasCache = Array.from(map.values());
+        renderCategoryFilterOptions(categoriasCache);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[Categories] Não foi possível carregar categorias da API, usando padrão/produtos:', err.message);
+  }
+
+  updateFiltersFromProducts();
+}
+
+function updateFiltersFromProducts() {
+  const map = new Map();
+  DEFAULT_CATEGORIES.forEach(c => map.set(c.slug, c));
+  if (Array.isArray(categoriasCache)) {
+    categoriasCache.forEach(c => map.set(c.slug, c));
+  }
+
+  // Extrair categorias distintas dos produtos existentes
+  (produtosCache || []).forEach(p => {
+    if (p.categoria && String(p.categoria).trim()) {
+      const catSlug = String(p.categoria).trim();
+      if (!map.has(catSlug)) {
+        const label = catSlug.charAt(0).toUpperCase() + catSlug.slice(1);
+        map.set(catSlug, { slug: catSlug, nome: label });
+      }
+    }
+  });
+
+  categoriasCache = Array.from(map.values());
+  renderCategoryFilterOptions(categoriasCache);
+}
+
+function renderCategoryFilterOptions(list = categoriasCache) {
+  const select = document.getElementById('category-filter-select');
+  if (!select) return;
+
+  const catsToRender = (Array.isArray(list) && list.length > 0) ? list : DEFAULT_CATEGORIES;
+  const currentVal = currentFilter === 'all' ? 'all' : currentFilter;
+
+  let optionsHTML = '<option value="all">📂 Escolher Categoria…</option>';
+
+  catsToRender.forEach(cat => {
+    const slug = cat.slug || cat;
+    const nome = cat.nome || (slug.charAt(0).toUpperCase() + slug.slice(1));
+    const isSelected = currentVal === slug ? 'selected' : '';
+    optionsHTML += `<option value="${escapeHtml(slug)}" ${isSelected}>🏷️ ${escapeHtml(nome)}</option>`;
+  });
+
+  select.innerHTML = optionsHTML;
+  select.value = currentVal;
+  updateFilterUIStates();
+}
+
+function updateFilterUIStates() {
+  const allBtn = document.getElementById('filter-all');
+  const select = document.getElementById('category-filter-select');
+
+  if (currentFilter === 'all') {
+    allBtn?.classList.add('active');
+    select?.classList.remove('active');
+    if (select) select.value = 'all';
+  } else {
+    allBtn?.classList.remove('active');
+    select?.classList.add('active');
+    if (select) select.value = currentFilter;
+  }
+}
+
 function applyFilter(filter) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === filter);
-  });
+  updateFilterUIStates();
   renderProducts(filter);
 }
 
 function initProductFilter() {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
+  const allBtn = document.getElementById('filter-all');
+  const select = document.getElementById('category-filter-select');
+
+  allBtn?.addEventListener('click', () => {
+    applyFilter('all');
   });
+
+  select?.addEventListener('change', (e) => {
+    const chosen = e.target.value;
+    applyFilter(chosen);
+  });
+
+  loadCategoriesForFilters();
 }
 
 /* ============================================================
@@ -273,20 +408,34 @@ const Modal = {
   },
 
   open(productId) {
-    const p = produtosCache.find(x => x.id === productId);
-    if (!p || !this.overlay) return;
+    const rawP = produtosCache.find(x => x.id === productId);
+    if (!rawP || !this.overlay) return;
 
+    const p = (typeof ImageBackend !== 'undefined') ? ImageBackend.normalizeProduct(rawP) : rawP;
     const oldPriceHTML = p.precoAntigo
       ? `<span class="modal-price-old">${formatPrice(p.precoAntigo)}</span>` : '';
 
+    // Garante que imagens seja sempre um array com itens válidos
+    const images = (Array.isArray(p.imagens) && p.imagens.length > 0)
+      ? p.imagens
+      : (p.imagem ? [p.imagem] : [(typeof ImageBackend !== 'undefined' ? ImageBackend.getPlaceholderSvg() : '')]);
+
+    const hasMultiple = images.length > 1;
+
     this.body.innerHTML = `
-      <div class="carousel" id="product-carousel" aria-live="polite">
-        <button class="carousel-arrow left" aria-label="Previous image"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-        <div class="carousel-track"></div>
-        <button class="carousel-arrow right" aria-label="Next image"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-        <div class="carousel-dots"></div>
-      </div>
-      ${p.badge ? `<div class="modal-badge badge--${p.badgeTipo || 'red'}">${p.badge}</div>` : ''}
+      <div class="modal-image-col">
+        ${p.badge ? `<div class="modal-badge badge--${p.badgeTipo || 'red'}">${p.badge}</div>` : ''}
+        <div class="carousel" id="product-carousel" aria-live="polite">
+          <button class="carousel-arrow left" aria-label="Imagem anterior" style="${hasMultiple ? '' : 'display:none;'}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="carousel-track"></div>
+          <button class="carousel-arrow right" aria-label="Próxima imagem" style="${hasMultiple ? '' : 'display:none;'}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="carousel-dots" style="${hasMultiple ? '' : 'display:none;'}"></div>
+        </div>
+        ${hasMultiple ? '<div class="carousel-thumbs"></div>' : ''}
       </div>
       <div class="modal-info-col">
         <span class="product-category">${p.categoria || ''}</span>
@@ -311,34 +460,56 @@ const Modal = {
         </ul>
       </div>`;
 
-          // Populate carousel with product images
-          const carouselTrack = this.body.querySelector('.carousel-track');
-          const carouselDots = this.body.querySelector('.carousel-dots');
-          const images = (p.imagens && p.imagens.length) ? p.imagens : [p.imagem];
-          images.forEach((src, idx) => {
-            const img = document.createElement('img');
-            img.src = src;
-            img.className = 'modal-product-img';
-            img.alt = `${p.nome} - imagem ${idx + 1}`;
-            carouselTrack.appendChild(img);
+    const carouselTrack  = this.body.querySelector('.carousel-track');
+    const carouselDots   = this.body.querySelector('.carousel-dots');
+    const carouselThumbs = this.body.querySelector('.carousel-thumbs');
 
-            const dot = document.createElement('button');
-            dot.className = 'carousel-dot';
-            if (idx === 0) dot.classList.add('active');
-            dot.addEventListener('click', () => showSlide(idx));
-            carouselDots.appendChild(dot);
-          });
+    images.forEach((src, idx) => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'modal-product-img';
+      img.alt = `${p.nome} - imagem ${idx + 1}`;
+      img.onerror = function() {
+        if (typeof ImageBackend !== 'undefined') {
+          ImageBackend.handleImgError(this, src);
+        }
+      };
+      carouselTrack.appendChild(img);
 
-          let currentIndex = 0;
-          const showSlide = (index) => {
-            currentIndex = (index + images.length) % images.length;
-            carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
-            const dots = carouselDots.querySelectorAll('.carousel-dot');
-            dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
-          };
+      if (hasMultiple) {
+        const dot = document.createElement('button');
+        dot.className = 'carousel-dot' + (idx === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', `Foto ${idx + 1}`);
+        dot.addEventListener('click', () => showSlide(idx));
+        carouselDots?.appendChild(dot);
 
-          this.body.querySelector('.carousel-arrow.left').addEventListener('click', () => showSlide(currentIndex - 1));
-          this.body.querySelector('.carousel-arrow.right').addEventListener('click', () => showSlide(currentIndex + 1));
+        if (carouselThumbs) {
+          const thumb = document.createElement('div');
+          thumb.className = 'carousel-thumb' + (idx === 0 ? ' active' : '');
+          thumb.setAttribute('title', `Foto ${idx + 1}`);
+          thumb.innerHTML = `<img src="${src}" alt="Thumb ${idx + 1}" onerror="if(typeof ImageBackend!=='undefined'){ImageBackend.handleImgError(this, '${src}');}" />`;
+          thumb.addEventListener('click', () => showSlide(idx));
+          carouselThumbs.appendChild(thumb);
+        }
+      }
+    });
+
+    let currentIndex = 0;
+    const showSlide = (index) => {
+      currentIndex = (index + images.length) % images.length;
+      carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
+      if (carouselDots) {
+        carouselDots.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+      }
+      if (carouselThumbs) {
+        carouselThumbs.querySelectorAll('.carousel-thumb').forEach((t, i) => t.classList.toggle('active', i === currentIndex));
+      }
+    };
+
+    if (hasMultiple) {
+      this.body.querySelector('.carousel-arrow.left')?.addEventListener('click', () => showSlide(currentIndex - 1));
+      this.body.querySelector('.carousel-arrow.right')?.addEventListener('click', () => showSlide(currentIndex + 1));
+    }
 
     document.getElementById('modal-add-btn')?.addEventListener('click', () => {
       Cart.add(productId);
@@ -409,14 +580,15 @@ const Cart = {
     const product = produtosCache.find(p => p.id === productId);
     if (!product) return;
 
+    const norm = (typeof ImageBackend !== 'undefined') ? ImageBackend.normalizeProduct(product) : product;
     const items    = this.getItems();
     const existing = items.find(i => i.id === productId);
 
     if (existing) { existing.qty += 1; }
-    else { items.push({ id: productId, nome: product.nome, preco: product.preco, imagem: product.imagem || '', qty: 1 }); }
+    else { items.push({ id: productId, nome: norm.nome, preco: norm.preco, imagem: norm.imagem || '', qty: 1 }); }
 
     this.save(items);
-    this.showToast(`"${product.nome}" adicionado!`);
+    this.showToast(`"${norm.nome}" adicionado!`);
     this.open();
   },
 
@@ -470,8 +642,8 @@ const Cart = {
     this.itemsEl.innerHTML = items.map(item => `
       <div class="cart-item" data-id="${item.id}">
         <div class="cart-item-img-wrap">
-          <img src="${item.imagem}" alt="${item.nome}" class="cart-item-img"
-            onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22><rect fill=%22%231a1a1a%22 width=%2260%22 height=%2260%22/></svg>'" />
+          <img src="${item.imagem || (typeof ImageBackend !== 'undefined' ? ImageBackend.getPlaceholderSvg('', 60, 60) : '')}" alt="${String(item.nome || '').replace(/"/g, '&quot;')}" class="cart-item-img"
+            onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'><rect fill=\'%231a1a1a\' width=\'60\' height=\'60\'/></svg>';" />
         </div>
         <div class="cart-item-details">
           <p class="cart-item-name">${item.nome}</p>
@@ -501,7 +673,553 @@ const Cart = {
 };
 
 /* ============================================================
-   5. CHECKOUT FORM — Coleta dados do cliente
+   4B. CUSTOMER AUTH — Login, Cadastro e Google Sign-In
+   ============================================================ */
+let currentUser = null;
+
+const CustomerAuth = {
+  overlay: null,
+  viewGuest: null,
+  viewUser: null,
+  accountBtn: null,
+  accountBtnText: null,
+
+  async init() {
+    this.overlay        = document.getElementById('auth-modal-overlay');
+    this.viewGuest      = document.getElementById('auth-view-guest');
+    this.viewUser       = document.getElementById('auth-view-user');
+    this.accountBtn     = document.getElementById('account-btn');
+    this.accountBtnText = document.getElementById('account-btn-text');
+
+    // Botões de abrir modal
+    this.accountBtn?.addEventListener('click', () => this.open());
+    document.getElementById('mob-account-btn')?.addEventListener('click', () => {
+      initMobileMenu && document.getElementById('mobile-menu')?.classList.remove('open');
+      this.open();
+    });
+
+    // Fechar modal
+    document.getElementById('auth-modal-close')?.addEventListener('click', () => this.close());
+    this.overlay?.addEventListener('click', (e) => {
+      if (e.target === this.overlay) this.close();
+    });
+
+    // Abas Login / Cadastro
+    const tabLogin    = document.getElementById('tab-login-btn');
+    const tabRegister = document.getElementById('tab-register-btn');
+    const formLogin   = document.getElementById('auth-login-form');
+    const formReg     = document.getElementById('auth-register-form');
+
+    tabLogin?.addEventListener('click', () => {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      formLogin.style.display = 'block';
+      formReg.style.display = 'none';
+      document.getElementById('auth-login-error').textContent = '';
+    });
+
+    tabRegister?.addEventListener('click', () => {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      formLogin.style.display = 'none';
+      formReg.style.display = 'block';
+      document.getElementById('auth-register-error').textContent = '';
+    });
+
+    // Submissão Login
+    formLogin?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-login-email').value.trim();
+      const pass  = document.getElementById('auth-login-password').value;
+      const errEl = document.getElementById('auth-login-error');
+      errEl.textContent = '';
+
+      if (!email || !pass) {
+        errEl.textContent = 'Preencha seu e-mail e senha.';
+        return;
+      }
+
+      try {
+        const res = await API.customerLogin(email, pass);
+        currentUser = res.user;
+        this.updateUI();
+        this.close();
+        Cart.showToast(`Bem-vindo de volta, ${currentUser.name.split(' ')[0]}! 💪`);
+        
+        // Se estava abrindo checkout, prossegue
+        if (this._resumeCheckoutAfterLogin) {
+          this._resumeCheckoutAfterLogin = false;
+          CheckoutForm.open();
+        }
+      } catch (err) {
+        errEl.textContent = '⚠️ ' + err.message;
+      }
+    });
+
+    // Submissão Cadastro
+    formReg?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name  = document.getElementById('auth-reg-name').value.trim();
+      const email = document.getElementById('auth-reg-email').value.trim();
+      const phone = document.getElementById('auth-reg-phone').value.trim();
+      const cpf   = document.getElementById('auth-reg-cpf').value.trim();
+      const pass  = document.getElementById('auth-reg-password').value;
+      const errEl = document.getElementById('auth-register-error');
+      errEl.textContent = '';
+
+      if (!name || !email || !pass) {
+        errEl.textContent = 'Preencha nome, e-mail e senha.';
+        return;
+      }
+
+      try {
+        const res = await API.customerRegister({ name, email, password: pass, phone, cpf });
+        currentUser = res.user;
+        this.updateUI();
+        this.close();
+        Cart.showToast(`Conta criada com sucesso! Olá, ${currentUser.name.split(' ')[0]}! 🎉`);
+        if (this._resumeCheckoutAfterLogin) {
+          this._resumeCheckoutAfterLogin = false;
+          CheckoutForm.open();
+        }
+      } catch (err) {
+        errEl.textContent = '⚠️ ' + err.message;
+      }
+    });
+
+    // Logout
+    document.getElementById('auth-logout-btn')?.addEventListener('click', () => {
+      API.customerLogout();
+      currentUser = null;
+      this.updateUI();
+      this.close();
+      Cart.showToast('Você saiu da sua conta.');
+    });
+
+    // Edição de perfil
+    const editBtn = document.getElementById('auth-edit-profile-btn');
+    const editForm = document.getElementById('auth-edit-profile-form');
+    const cancelEditBtn = document.getElementById('auth-cancel-edit-btn');
+
+    editBtn?.addEventListener('click', () => {
+      editForm.style.display = 'block';
+      editBtn.style.display = 'none';
+      if (currentUser) {
+        document.getElementById('edit-prof-phone').value = currentUser.phone || '';
+        document.getElementById('edit-prof-cpf').value = currentUser.cpf || '';
+        document.getElementById('edit-prof-address').value = currentUser.address || '';
+        document.getElementById('edit-prof-city').value = currentUser.city || '';
+        document.getElementById('edit-prof-cep').value = currentUser.cep || '';
+      }
+    });
+
+    cancelEditBtn?.addEventListener('click', () => {
+      editForm.style.display = 'none';
+      editBtn.style.display = 'block';
+    });
+
+    editForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('edit-prof-phone').value.trim();
+      const cpf = document.getElementById('edit-prof-cpf').value.trim();
+      const address = document.getElementById('edit-prof-address').value.trim();
+      const city = document.getElementById('edit-prof-city').value.trim();
+      const cep = document.getElementById('edit-prof-cep').value.trim();
+
+      try {
+        const updated = await API.updateCustomerProfile({ phone, cpf, address, city, cep });
+        currentUser = updated;
+        this.updateUI();
+        editForm.style.display = 'none';
+        editBtn.style.display = 'block';
+        Cart.showToast('Dados salvos com sucesso!');
+      } catch (err) {
+        document.getElementById('auth-edit-error').textContent = '⚠️ ' + err.message;
+      }
+    });
+
+    // Abas do Painel do Usuário Logado (Meus Pedidos vs Meus Dados)
+    const tabOrders = document.getElementById('user-tab-orders-btn');
+    const tabProfile = document.getElementById('user-tab-profile-btn');
+    const secOrders = document.getElementById('user-orders-section');
+    const secProfile = document.getElementById('user-profile-section');
+
+    tabOrders?.addEventListener('click', () => {
+      tabOrders.classList.add('active');
+      tabProfile?.classList.remove('active');
+      if (secOrders) secOrders.style.display = 'block';
+      if (secProfile) secProfile.style.display = 'none';
+      this.loadCustomerOrders();
+    });
+
+    tabProfile?.addEventListener('click', () => {
+      tabProfile.classList.add('active');
+      tabOrders?.classList.remove('active');
+      if (secOrders) secOrders.style.display = 'none';
+      if (secProfile) secProfile.style.display = 'block';
+    });
+
+    document.getElementById('btn-orders-shop-now')?.addEventListener('click', () => {
+      this.close();
+      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Clique no botão Google
+    const googleBtnFallback = document.getElementById('btn-google-fallback');
+    const googleQuickBox    = document.getElementById('google-quick-box');
+    const googleQuickEmail  = document.getElementById('google-quick-email');
+    const googleQuickSubmit = document.getElementById('google-quick-submit');
+    const googleQuickError  = document.getElementById('google-quick-error');
+
+    googleBtnFallback?.addEventListener('click', () => {
+      // Se houver Google Client ID configurado no .env e GSI ativo, tenta abrir popup do Google
+      if (this.googleClientId && window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.prompt();
+          return;
+        } catch (_) {}
+      }
+
+      // Caso contrário (ambiente local / sem Client ID ainda), abre a caixinha elegante na hora
+      if (googleQuickBox) {
+        googleQuickBox.style.display = googleQuickBox.style.display === 'none' ? 'block' : 'none';
+        if (googleQuickBox.style.display === 'block') {
+          googleQuickEmail?.focus();
+        }
+      }
+    });
+
+    googleQuickSubmit?.addEventListener('click', async () => {
+      const email = googleQuickEmail?.value.trim();
+      if (!email || !email.includes('@')) {
+        if (googleQuickError) googleQuickError.textContent = 'Por favor, informe um e-mail válido.';
+        return;
+      }
+      if (googleQuickError) googleQuickError.textContent = '';
+      googleQuickSubmit.disabled = true;
+      googleQuickSubmit.textContent = 'Entrando...';
+
+      const dummyName = email.split('@')[0];
+      const cleanName = dummyName.charAt(0).toUpperCase() + dummyName.slice(1);
+
+      try {
+        const res = await API.customerGoogleLogin({
+          profile: {
+            id: 'google_' + Date.now(),
+            email: email,
+            name: cleanName,
+            picture: ''
+          }
+        });
+        currentUser = res.user;
+        this.updateUI();
+        this.close();
+        Cart.showToast(`Login com Google realizado! Olá, ${currentUser.name.split(' ')[0]}! 🚀`);
+        if (this._resumeCheckoutAfterLogin) {
+          this._resumeCheckoutAfterLogin = false;
+          CheckoutForm.open();
+        }
+      } catch (err) {
+        if (googleQuickError) googleQuickError.textContent = '⚠️ ' + err.message;
+      } finally {
+        googleQuickSubmit.disabled = false;
+        googleQuickSubmit.textContent = 'Entrar';
+      }
+    });
+
+    // Submeter no enter
+    googleQuickEmail?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        googleQuickSubmit?.click();
+      }
+    });
+
+    // Checar perfil existente
+    try {
+      currentUser = await API.getCustomerProfile();
+      this.updateUI();
+    } catch (_) {}
+
+    // Inicializar Google Identity Services
+    this.initGoogleClient();
+  },
+
+  async initGoogleClient() {
+    let googleClientId = '';
+    try {
+      const cfg = await API.getConfig();
+      googleClientId = cfg?.googleClientId;
+      this.googleClientId = googleClientId;
+    } catch (_) {}
+
+    if (!googleClientId) {
+      // Sem Google Client ID configurado ainda: o botão exibirá a entrada direta inline
+      return;
+    }
+
+    const checkGsi = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        clearInterval(checkGsi);
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response) => {
+              try {
+                const res = await API.customerGoogleLogin({ credential: response.credential });
+                currentUser = res.user;
+                CustomerAuth.updateUI();
+                CustomerAuth.close();
+                Cart.showToast(`Login realizado com Google! Olá, ${currentUser.name.split(' ')[0]}! 🚀`);
+                if (CustomerAuth._resumeCheckoutAfterLogin) {
+                  CustomerAuth._resumeCheckoutAfterLogin = false;
+                  CheckoutForm.open();
+                }
+              } catch (e) {
+                alert('Erro no login com Google: ' + e.message);
+              }
+            }
+          });
+
+          const container = document.getElementById('google-btn-container');
+          if (container) {
+            window.google.accounts.id.renderButton(container, {
+              theme: 'outline',
+              size: 'large',
+              width: 320,
+              text: 'continue_with',
+              shape: 'pill'
+            });
+            const fallbackBtn = document.getElementById('btn-google-fallback');
+            if (fallbackBtn) fallbackBtn.style.display = 'none';
+          }
+        } catch (e) {
+          console.warn('[Google Sign-In] Erro na inicialização:', e.message);
+        }
+      }
+    }, 500);
+
+    // Timeout de 10s para parar de checar
+    setTimeout(() => clearInterval(checkGsi), 10000);
+  },
+
+  updateUI() {
+    if (currentUser) {
+      this.accountBtn?.classList.add('logged-in');
+      const firstName = currentUser.name.split(' ')[0];
+      if (this.accountBtnText) this.accountBtnText.textContent = firstName;
+      
+      const mobBtn = document.getElementById('mob-account-btn');
+      if (mobBtn) mobBtn.textContent = `👤 Minha Conta (${firstName})`;
+
+      if (this.viewGuest) this.viewGuest.style.display = 'none';
+      if (this.viewUser)  this.viewUser.style.display = 'block';
+
+      // Preenche dados do card do usuário
+      const nameEl = document.getElementById('auth-user-name');
+      const emailEl = document.getElementById('auth-user-email');
+      const avatarEl = document.getElementById('auth-user-avatar');
+      const cpfEl = document.getElementById('auth-user-cpf-val');
+      const phoneEl = document.getElementById('auth-user-phone-val');
+      const addrEl = document.getElementById('auth-user-address-val');
+
+      if (nameEl) nameEl.textContent = currentUser.name;
+      if (emailEl) emailEl.textContent = currentUser.email;
+      if (cpfEl) cpfEl.textContent = currentUser.cpf || 'Não informado';
+      if (phoneEl) phoneEl.textContent = currentUser.phone || 'Não informado';
+      if (addrEl) addrEl.textContent = currentUser.address ? `${currentUser.address} - ${currentUser.city || ''}` : 'Não informado';
+
+      if (avatarEl) {
+        if (currentUser.avatar) {
+          avatarEl.innerHTML = `<img src="${currentUser.avatar}" alt="${currentUser.name}" />`;
+        } else {
+          avatarEl.textContent = firstName.charAt(0).toUpperCase();
+        }
+      }
+
+      // Carrega o histórico de pedidos do cliente
+      this.loadCustomerOrders();
+    } else {
+      this.accountBtn?.classList.remove('logged-in');
+      if (this.accountBtnText) this.accountBtnText.textContent = 'Entrar';
+
+      const mobBtn = document.getElementById('mob-account-btn');
+      if (mobBtn) mobBtn.textContent = '👤 Minha Conta';
+
+      if (this.viewGuest) this.viewGuest.style.display = 'block';
+      if (this.viewUser)  this.viewUser.style.display = 'none';
+    }
+  },
+
+  async loadCustomerOrders() {
+    const listEl = document.getElementById('user-orders-list');
+    const loadingEl = document.getElementById('user-orders-loading');
+    const emptyEl = document.getElementById('user-orders-empty');
+    const countEl = document.getElementById('user-orders-count');
+
+    if (!listEl) return;
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (emptyEl) emptyEl.style.display = 'none';
+    listEl.innerHTML = '';
+
+    try {
+      const orders = await API.getCustomerOrders();
+      const ordersList = Array.isArray(orders) ? orders : [];
+      if (countEl) countEl.textContent = ordersList.length;
+      if (loadingEl) loadingEl.style.display = 'none';
+
+      if (ordersList.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+
+      this._cachedOrders = ordersList;
+
+      listEl.innerHTML = ordersList.map(order => {
+        const rawDate = order.criadoEm || order.criado_em;
+        const dateObj = rawDate ? new Date(rawDate) : new Date();
+        const dataFmt = isNaN(dateObj.getTime())
+          ? 'Data recente'
+          : dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' às ' +
+            dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        const status = (order.status || 'pendente').toLowerCase();
+        let statusBadge = '<span class="order-status-badge status-pendente">🟡 Pendente</span>';
+        if (status === 'pago' || status === 'aprovado') {
+          statusBadge = '<span class="order-status-badge status-pago">🟢 Pago</span>';
+        } else if (status === 'enviado') {
+          statusBadge = '<span class="order-status-badge status-enviado">🚚 Enviado</span>';
+        } else if (status === 'entregue' || status === 'concluido') {
+          statusBadge = '<span class="order-status-badge status-entregue">✅ Entregue</span>';
+        } else if (status === 'cancelado') {
+          statusBadge = '<span class="order-status-badge status-cancelado">🔴 Cancelado</span>';
+        }
+
+        const items = Array.isArray(order.itens) ? order.itens : [];
+        const fallbackSvg = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect fill='%231a1a1a' width='40' height='40'/></svg>";
+
+        const itemsHtml = items.map(item => {
+          const cachedProd = (typeof produtosCache !== 'undefined' && Array.isArray(produtosCache))
+            ? produtosCache.find(p => p.id === item.id || p.nome === item.nome)
+            : null;
+          const rawImg = (item.imagem && String(item.imagem).trim())
+            || (cachedProd ? (cachedProd.imagem || (cachedProd.imagens && cachedProd.imagens[0])) : '')
+            || '';
+          const finalImg = rawImg || fallbackSvg;
+          const safeNome = String(item.nome || 'Produto').replace(/"/g, '&quot;');
+
+          return `
+            <div class="order-item-row">
+              <div class="order-item-left">
+                <img src="${finalImg}"
+                     alt="${safeNome}"
+                     class="order-item-img"
+                     onerror="this.onerror=null;this.src='${fallbackSvg}';" />
+                <div style="min-width:0;">
+                  <div class="order-item-name" title="${safeNome}">${safeNome}</div>
+                  <div class="order-item-qty">${item.qty}x ${formatPrice(item.preco)}</div>
+                </div>
+              </div>
+              <div class="order-item-price">${formatPrice(item.subtotal || (item.preco * item.qty))}</div>
+            </div>
+          `;
+        }).join('');
+
+        const totalFormatted = formatPrice(order.total || 0);
+        const freteFormatted = (order.valorFrete === 0 || order.valor_frete === 0) ? 'Grátis' : formatPrice(order.valorFrete || order.valor_frete || 0);
+
+        const safeOrderId = order.id;
+        const msgWhats = encodeURIComponent(`Olá! Gostaria de informações sobre o meu pedido *#${safeOrderId}* no valor de ${totalFormatted}.`);
+        const whatsUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${msgWhats}`;
+
+        return `
+          <div class="order-card" data-order-id="${safeOrderId}">
+            <div class="order-card-header">
+              <div>
+                <div class="order-id-badge">#${safeOrderId}</div>
+                <div class="order-date-text">📅 ${dataFmt}</div>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+
+            <div class="order-items-list">
+              ${itemsHtml}
+            </div>
+
+            <div class="order-card-footer">
+              <div class="order-totals-row">
+                <span>Frete: <strong style="color:var(--text-white);">${freteFormatted}</strong></span>
+                <span style="display:flex;align-items:center;gap:0.4rem;">
+                  Total: <span class="order-total-amount">${totalFormatted}</span>
+                </span>
+              </div>
+              <div class="order-actions-row">
+                <button type="button" class="order-action-btn order-action-reorder" onclick="CustomerAuth.reorder('${safeOrderId}')">
+                  🛒 Comprar Novamente
+                </button>
+                <a href="${whatsUrl}" target="_blank" rel="noopener noreferrer" class="order-action-btn order-action-whatsapp">
+                  💬 Suporte WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (listEl) {
+        listEl.innerHTML = `
+          <div style="text-align:center;padding:1.5rem;color:var(--red);font-size:0.85rem;">
+            ⚠️ Erro ao carregar histórico: ${err.message}
+          </div>
+        `;
+      }
+    }
+  },
+
+  reorder(orderId) {
+    if (!this._cachedOrders) return;
+    const order = this._cachedOrders.find(o => o.id === orderId);
+    if (!order || !Array.isArray(order.itens)) return;
+
+    const currentItems = Cart.getItems();
+    order.itens.forEach(item => {
+      const existing = currentItems.find(ci => ci.id === item.id || ci.nome === item.nome);
+      if (existing) {
+        existing.qty += item.qty || 1;
+      } else {
+        currentItems.push({
+          id: item.id || ('prod_' + Date.now()),
+          nome: item.nome,
+          preco: item.preco,
+          imagem: item.imagem || '',
+          qty: item.qty || 1
+        });
+      }
+    });
+
+    Cart.save(currentItems);
+    this.close();
+    Cart.open();
+    Cart.showToast('Itens do pedido adicionados ao carrinho! 🛒');
+  },
+
+  open(resumeCheckout = false) {
+    this._resumeCheckoutAfterLogin = resumeCheckout;
+    this.updateUI();
+    this.overlay?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  },
+
+  close() {
+    this.overlay?.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+};
+
+/* ============================================================
+   5. CHECKOUT FORM — Coleta dados do cliente (Exige Login na Conta!)
    ============================================================ */
 const CheckoutForm = {
   init() {
@@ -538,10 +1256,32 @@ const CheckoutForm = {
   open() {
     const items = Cart.getItems();
     if (items.length === 0) { Cart.showToast('Adicione produtos ao carrinho primeiro!'); return; }
+
+    // REGRA DE NEGÓCIO: O cliente precisa estar cadastrado e logado para finalizar o pedido!
+    if (!currentUser) {
+      Cart.close();
+      Cart.showToast('⚠️ Crie ou entre na sua conta para finalizar o pedido!');
+      CustomerAuth.open(true); // Abre modal de auth e continua checkout assim que logar
+      return;
+    }
+
     const overlay = document.getElementById('checkout-form-overlay');
     overlay?.classList.add('open');
     document.body.style.overflow = 'hidden';
-    document.getElementById('checkout-customer-form')?.reset();
+
+    // Auto-preenche com os dados da conta do cliente cadastrado
+    const nomeEl     = document.getElementById('checkout-nome');
+    const cpfEl      = document.getElementById('checkout-cpf');
+    const enderecoEl = document.getElementById('checkout-endereco');
+    const cidadeEl   = document.getElementById('checkout-cidade');
+    const cepEl      = document.getElementById('checkout-cep');
+
+    if (nomeEl && currentUser.name) nomeEl.value = currentUser.name;
+    if (cpfEl && currentUser.cpf) cpfEl.value = currentUser.cpf;
+    if (enderecoEl && currentUser.address) enderecoEl.value = currentUser.address;
+    if (cidadeEl && currentUser.city) cidadeEl.value = currentUser.city;
+    if (cepEl && currentUser.cep) cepEl.value = currentUser.cep;
+
     const errEl = document.getElementById('checkout-form-error');
     if (errEl) errEl.textContent = '';
   },
@@ -551,7 +1291,7 @@ const CheckoutForm = {
     document.body.style.overflow = '';
   },
 
-  confirm() {
+  async confirm() {
     const nome     = document.getElementById('checkout-nome')?.value.trim();
     const cpf      = document.getElementById('checkout-cpf')?.value.trim();
     const endereco = document.getElementById('checkout-endereco')?.value.trim();
@@ -564,8 +1304,30 @@ const CheckoutForm = {
       return;
     }
 
+    const items = Cart.getItems();
+    // Registra pedido automaticamente no banco de dados SQL via API
+    if (typeof API !== 'undefined') {
+      try {
+        await API.createOrder({
+          cliente: {
+            nome,
+            cpf,
+            endereco,
+            cidade,
+            cep,
+            telefone: currentUser?.phone || ''
+          },
+          itens: items,
+          metodoPagamento: 'whatsapp'
+        });
+        console.log('[SQL Database] Pedido registrado com sucesso no banco de dados SQL!');
+      } catch (e) {
+        console.warn('[SQL Database] Aviso ao registrar pedido no banco:', e.message);
+      }
+    }
+
     this.close();
-    Checkout.send({ nome, cpf, endereco, cidade, cep });
+    Checkout.send({ nome, cpf, endereco, cidade, cep, telefone: currentUser?.phone });
   },
 };
 
@@ -607,6 +1369,9 @@ const Checkout = {
     msg += `Olá! Gostaria de finalizar este pedido. Pode me ajudar com pagamento e entrega? 💪`;
 
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+    Cart.clear();
+    Cart.close();
+    Cart.showToast('Pedido registrado! Acompanhe seu histórico em "Minha Conta" 📦');
   },
 };
 
@@ -792,6 +1557,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   Modal.init();
   Cart.init();
+  CustomerAuth.init();
   CheckoutForm.init();
 
   // Set footer WhatsApp link dynamically
@@ -806,5 +1572,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initCounters();
   initActiveNavHighlight();
 
-  console.log('%c🦍 Nova Era Nutrition | Firebase Vitrine carregada', 'color:#D90429;font-weight:bold;font-size:13px');
+  console.log('%c🦍 Nova Era Nutrition | Vitrine Conectada (Node.js + MongoDB)', 'color:#D90429;font-weight:bold;font-size:13px');
 });

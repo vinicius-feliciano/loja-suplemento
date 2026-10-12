@@ -29,6 +29,12 @@
         <li><a href="#manifesto" class="nav-link" id="nav-manifesto">Nossa Marca</a></li>
         <li><a href="#contact"   class="nav-link" id="nav-contact">Contato</a></li>
       </ul>
+      <div class="user-account-wrapper" id="user-account-wrapper">
+        <button class="account-btn" id="account-btn" aria-label="Minha Conta">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="account-btn-text" id="account-btn-text">Entrar</span>
+        </button>
+      </div>
       <button class="cart-btn" id="cart-btn" aria-label="Abrir carrinho de compras">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
         <span class="cart-count" id="cart-count" aria-label="Itens no carrinho">0</span>
@@ -46,6 +52,7 @@
         <li><a href="#products"  class="mobile-nav-link" id="mob-products">Produtos</a></li>
         <li><a href="#manifesto" class="mobile-nav-link" id="mob-manifesto">Nossa Marca</a></li>
         <li><a href="#contact"   class="mobile-nav-link" id="mob-contact">Contato</a></li>
+        <li><button class="mobile-nav-link mob-account-link" id="mob-account-btn" style="background:none;border:none;color:var(--text-white);text-align:left;width:100%;cursor:pointer;">👤 Minha Conta</button></li>
         <li><a href="#products"  class="btn btn-primary" id="mob-cta-btn" style="display:inline-block;margin-top:1rem;">Comprar Agora</a></li>
       </ul>
     </div>
@@ -145,11 +152,23 @@
           <h2 class="section-title">Nossos <em>Produtos</em></h2>
           <p class="section-subtitle">Cada produto é formulado com ingredientes de máxima qualidade para potencializar seus resultados.</p>
         </div>
-        <div class="product-filters animate-on-scroll" data-animation="fade-up" role="group" aria-label="Filtrar produtos">
-          <button class="filter-btn active" data-filter="all"        id="filter-all">Todos</button>
-          <button class="filter-btn"        data-filter="proteina"   id="filter-proteina">Proteínas</button>
-          <button class="filter-btn"        data-filter="pretreino"  id="filter-pretreino">Pré-Treino</button>
-          <button class="filter-btn"        data-filter="aminoacido" id="filter-aminoacido">Aminoácidos</button>
+        <div class="product-filters animate-on-scroll" id="product-filters" data-animation="fade-up" role="group" aria-label="Filtrar produtos">
+          <button class="filter-btn active" data-filter="all" id="filter-all">
+            ⚡ Todos os Produtos
+          </button>
+          <div class="category-select-wrap" id="category-select-wrap">
+            <select class="category-filter-select" id="category-filter-select" aria-label="Filtrar por Categoria">
+              <option value="all">📂 Escolher Categoria…</option>
+              <option value="proteina">🏷️ Proteínas</option>
+              <option value="pretreino">🏷️ Pré-Treino</option>
+              <option value="aminoacido">🏷️ Aminoácidos</option>
+              <option value="creatina">🏷️ Creatina</option>
+              <option value="vitamina">🏷️ Vitaminas</option>
+              <option value="queimador">🏷️ Queimadores</option>
+              <option value="outro">🏷️ Outros</option>
+            </select>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
         <!-- Produtos injetados pelo script.js via Firestore -->
         <div class="products-grid" id="products-grid" aria-live="polite"></div>
@@ -364,16 +383,201 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════ -->
-  <!-- FIREBASE SDK (compat v10)                       -->
-  <!-- ═══════════════════════════════════════════════ -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- AUTH & ACCOUNT MODAL (CLIENTE) -->
+  <div class="auth-modal-overlay" id="auth-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="auth-modal-card" id="auth-modal-card">
+      <button class="auth-modal-close" id="auth-modal-close" aria-label="Fechar">✕</button>
 
-  <!-- Configuração do Firebase -->
-  <script src="firebase-config.js"></script>
+      <!-- VISÃO: NÃO LOGADO (LOGIN / CADASTRO) -->
+      <div id="auth-view-guest">
+        <div class="auth-header">
+          <div class="auth-icon-badge">⚡</div>
+          <h3 class="auth-title" id="auth-modal-title">Sua Conta na Nova Era</h3>
+          <p class="auth-subtitle" id="auth-modal-subtitle">Entre ou cadastre-se para acompanhar pedidos e finalizar suas compras.</p>
+        </div>
+
+        <!-- Botão Google Sign-In -->
+        <div class="auth-google-section">
+          <div id="google-btn-container" class="google-btn-container"></div>
+          <button type="button" class="btn-google-fallback" id="btn-google-fallback">
+            <svg width="20" height="20" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+            <span>Entrar com o Google</span>
+          </button>
+          
+          <!-- Formulário rápido para inserir e-mail Google caso não haja credenciais no .env -->
+          <div id="google-quick-box" style="display:none;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.2);border-radius:12px;padding:1rem;margin-top:.6rem;">
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:.6rem;">
+              Digite seu e-mail do Google para entrar direto:
+            </p>
+            <div style="display:flex;gap:.5rem;">
+              <input type="email" id="google-quick-email" class="checkout-input" placeholder="seuemail@gmail.com" style="flex:1;padding:0.6rem 0.8rem;font-size:0.88rem;" />
+              <button type="button" id="google-quick-submit" class="btn btn-primary btn-sm" style="white-space:nowrap;">Entrar</button>
+            </div>
+            <p id="google-quick-error" style="color:var(--red);font-size:0.8rem;margin-top:0.4rem;min-height:1rem;"></p>
+          </div>
+        </div>
+
+        <div class="auth-divider">
+          <span>ou use seu e-mail</span>
+        </div>
+
+        <!-- Abas Login / Cadastro -->
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tab-login-btn">Entrar</button>
+          <button type="button" class="auth-tab-btn" id="tab-register-btn">Criar Conta</button>
+        </div>
+
+        <!-- FORMULÁRIO LOGIN -->
+        <form id="auth-login-form" class="auth-form" novalidate>
+          <div class="checkout-field">
+            <label class="checkout-label" for="auth-login-email">E-mail *</label>
+            <input type="email" id="auth-login-email" class="checkout-input" placeholder="seu@email.com" autocomplete="email" required />
+          </div>
+          <div class="checkout-field">
+            <label class="checkout-label" for="auth-login-password">Senha *</label>
+            <input type="password" id="auth-login-password" class="checkout-input" placeholder="Sua senha" autocomplete="current-password" required />
+          </div>
+          <p class="auth-form-error" id="auth-login-error" role="alert"></p>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
+            Acessar Minha Conta
+          </button>
+        </form>
+
+        <!-- FORMULÁRIO CADASTRO -->
+        <form id="auth-register-form" class="auth-form" style="display:none;" novalidate>
+          <div class="checkout-field">
+            <label class="checkout-label" for="auth-reg-name">Nome Completo *</label>
+            <input type="text" id="auth-reg-name" class="checkout-input" placeholder="Ex: Lucas Silva" autocomplete="name" required />
+          </div>
+          <div class="checkout-field">
+            <label class="checkout-label" for="auth-reg-email">E-mail *</label>
+            <input type="email" id="auth-reg-email" class="checkout-input" placeholder="seu@email.com" autocomplete="email" required />
+          </div>
+          <div class="checkout-row">
+            <div class="checkout-field">
+              <label class="checkout-label" for="auth-reg-phone">WhatsApp / Telefone</label>
+              <input type="tel" id="auth-reg-phone" class="checkout-input" placeholder="(00) 00000-0000" />
+            </div>
+            <div class="checkout-field">
+              <label class="checkout-label" for="auth-reg-cpf">CPF</label>
+              <input type="text" id="auth-reg-cpf" class="checkout-input" placeholder="000.000.000-00" maxlength="14" />
+            </div>
+          </div>
+          <div class="checkout-field">
+            <label class="checkout-label" for="auth-reg-password">Senha (mínimo 6 dígitos) *</label>
+            <input type="password" id="auth-reg-password" class="checkout-input" placeholder="Crie uma senha forte" autocomplete="new-password" required />
+          </div>
+          <p class="auth-form-error" id="auth-register-error" role="alert"></p>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem;">
+            Criar Minha Conta Grátis
+          </button>
+        </form>
+      </div>
+
+      <!-- VISÃO: LOGADO (PERFIL & MEUS PEDIDOS) -->
+      <div id="auth-view-user" style="display:none;">
+        <div class="auth-user-header">
+          <div class="auth-avatar" id="auth-user-avatar">👤</div>
+          <div style="flex:1;min-width:0;">
+            <h4 class="auth-user-name" id="auth-user-name">Carregando...</h4>
+            <p class="auth-user-email" id="auth-user-email">email@exemplo.com</p>
+          </div>
+          <button type="button" class="btn-logout-icon" id="auth-logout-btn" title="Sair da Conta" aria-label="Sair da Conta">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+
+        <!-- Abas do Painel: Meus Pedidos & Meus Dados -->
+        <div class="auth-tabs user-tabs">
+          <button type="button" class="auth-tab-btn active" id="user-tab-orders-btn">
+            📦 Meus Pedidos (<span id="user-orders-count">0</span>)
+          </button>
+          <button type="button" class="auth-tab-btn" id="user-tab-profile-btn">
+            👤 Meus Dados
+          </button>
+        </div>
+
+        <!-- SEÇÃO: MEUS PEDIDOS (HISTÓRICO) -->
+        <div id="user-orders-section" class="user-tab-content">
+          <div id="user-orders-loading" class="user-orders-loading" style="display:none;">
+            <div class="spinner-small"></div>
+            <span>Carregando seus pedidos...</span>
+          </div>
+          <div id="user-orders-list" class="user-orders-list">
+            <!-- Pedidos renderizados dinamicamente via JS -->
+          </div>
+          <div id="user-orders-empty" class="user-orders-empty" style="display:none;">
+            <div class="orders-empty-icon">🛍️</div>
+            <h4>Nenhum pedido ainda</h4>
+            <p>Quando você finalizar uma compra, seu histórico de pedidos aparecerá aqui com todos os produtos e status.</p>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-orders-shop-now" style="margin-top:0.75rem;">Comprar Agora</button>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: MEUS DADOS -->
+        <div id="user-profile-section" class="user-tab-content" style="display:none;">
+          <div class="auth-user-details-card">
+            <div class="auth-detail-item">
+              <span>CPF:</span> <strong id="auth-user-cpf-val">Não informado</strong>
+            </div>
+            <div class="auth-detail-item">
+              <span>Telefone:</span> <strong id="auth-user-phone-val">Não informado</strong>
+            </div>
+            <div class="auth-detail-item">
+              <span>Endereço:</span> <strong id="auth-user-address-val">Não informado</strong>
+            </div>
+          </div>
+
+          <div class="auth-user-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="auth-edit-profile-btn" style="width:100%;justify-content:center;">Editar Dados de Entrega</button>
+          </div>
+
+          <!-- FORMULÁRIO DE EDIÇÃO RÁPIDA DE DADOS -->
+          <form id="auth-edit-profile-form" style="display:none;margin-top:1rem;border-top:1px solid var(--border-subtle);padding-top:1rem;">
+            <div class="checkout-field">
+              <label class="checkout-label" for="edit-prof-phone">WhatsApp / Telefone</label>
+              <input type="tel" id="edit-prof-phone" class="checkout-input" placeholder="(00) 00000-0000" />
+            </div>
+            <div class="checkout-field">
+              <label class="checkout-label" for="edit-prof-cpf">CPF</label>
+              <input type="text" id="edit-prof-cpf" class="checkout-input" placeholder="000.000.000-00" maxlength="14" />
+            </div>
+            <div class="checkout-field">
+              <label class="checkout-label" for="edit-prof-address">Endereço (Rua, Nº, Bairro)</label>
+              <input type="text" id="edit-prof-address" class="checkout-input" placeholder="Rua, número, complemento" />
+            </div>
+            <div class="checkout-row">
+              <div class="checkout-field">
+                <label class="checkout-label" for="edit-prof-city">Cidade</label>
+                <input type="text" id="edit-prof-city" class="checkout-input" placeholder="Sua Cidade" />
+              </div>
+              <div class="checkout-field">
+                <label class="checkout-label" for="edit-prof-cep">CEP</label>
+                <input type="text" id="edit-prof-cep" class="checkout-input" placeholder="00000-000" maxlength="9" />
+              </div>
+            </div>
+            <p class="auth-form-error" id="auth-edit-error"></p>
+            <div style="display:flex;gap:.5rem;margin-top:.5rem;">
+              <button type="submit" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">Salvar</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="auth-cancel-edit-btn" style="flex:1;justify-content:center;">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Google Identity Services (One-Tap & Sign-In) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Utilitários de Imagem e Configuração -->
+  <script src="image-backend.js"></script>
+
+  <!-- Cliente API Node.js -->
+  <script src="api-client.js?v=2.1"></script>
 
   <!-- Script da vitrine -->
-  <script src="script.js"></script>
+  <script src="script.js?v=2.1"></script>
 </body>
 </html>

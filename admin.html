@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="admin.css" />
+  <!-- Chart.js para Business Intelligence e Data Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
 
@@ -70,8 +72,8 @@
       </form>
 
       <p class="login-hint">
-        Usuário criado em <strong>Firebase Authentication</strong>.<br />
-        Consulte o <code>README.md</code> para configuração inicial.
+        Acesso administrativo configurado no arquivo <code>.env</code> do servidor.<br />
+        Consulte o <code>README.md</code> para gerenciar credenciais.
       </p>
     </div>
   </div>
@@ -94,11 +96,19 @@
       <nav class="sidebar-nav">
         <button class="sidebar-link active" data-view="dashboard" aria-current="page" id="nav-dashboard">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-          Dashboard
+          Dashboard & Analytics
         </button>
         <button class="sidebar-link" data-view="products" id="nav-products">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg>
           Produtos
+        </button>
+        <button class="sidebar-link" data-view="categories" id="nav-categories">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          Categorias
+        </button>
+        <button class="sidebar-link" data-view="orders" id="nav-orders">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          Pedidos & Vendas
         </button>
         <button class="sidebar-link" data-view="add-product" id="nav-add-product">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v8"/><path d="M8 12h8"/><circle cx="12" cy="12" r="10"/></svg>
@@ -134,55 +144,246 @@
       </header>
 
       <!-- ══════════════════════════════════════ -->
-      <!--  VIEW: DASHBOARD                       -->
+      <!--  VIEW: DASHBOARD (BI & DATA ANALYTICS) -->
       <!-- ══════════════════════════════════════ -->
       <section class="admin-view" id="view-dashboard">
-        <div class="view-header">
+        <!-- Header com Filtros & Status Realtime -->
+        <div class="view-header analytics-header">
           <div>
-            <h2 class="view-title">Dashboard</h2>
-            <p class="view-subtitle">Visão geral da sua loja — dados em tempo real do Firebase.</p>
+            <div class="analytics-badge-row">
+              <span class="live-indicator"><span class="live-dot"></span> Sincronização em Tempo Real</span>
+              <span class="analytics-timestamp" id="analytics-last-update">Atualizado agora</span>
+            </div>
+            <h2 class="view-title">BI & Data Analytics</h2>
+            <p class="view-subtitle">Inteligência de mercado, funil de vendas e métricas financeiras dinâmicas.</p>
           </div>
-          <button class="btn-admin btn-admin--primary" data-view="add-product" id="dash-add-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-            Novo Produto
-          </button>
-        </div>
 
-        <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-card-icon stat-icon--red">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg>
+          <div class="analytics-controls">
+            <div class="period-selector-wrap">
+              <label for="analytics-period-select" class="control-label">Período:</label>
+              <select id="analytics-period-select" class="form-input form-select analytics-select">
+                <option value="all" selected>Todo o Histórico</option>
+                <option value="30d">Últimos 30 Dias</option>
+                <option value="7d">Últimos 7 Dias</option>
+                <option value="today">Hoje</option>
+              </select>
             </div>
-            <div><span class="stat-card-label">Total de Produtos</span><span class="stat-card-value" id="stat-count">–</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-icon stat-icon--green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9.09 9 .01 0M15 9h-4m4 6H9"/></svg>
-            </div>
-            <div><span class="stat-card-label">Proteínas</span><span class="stat-card-value" id="stat-proteina-count">–</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-icon stat-icon--red">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-2 2.5h3L12 7"/><path d="M10 14v-3"/><path d="M14 14v-3"/><path d="M11 19H6.5a3.5 3.5 0 0 1 0-7h.5"/><path d="M13 19h4.5a3.5 3.5 0 0 0 0-7h-.5"/></svg>
-            </div>
-            <div><span class="stat-card-label">Pré-Treino</span><span class="stat-card-value" id="stat-pretreino-count">–</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-icon stat-icon--green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
-            </div>
-            <div><span class="stat-card-label">Aminoácidos</span><span class="stat-card-value" id="stat-aminoacido-count">–</span></div>
+
+            <button class="btn-admin btn-admin--outline" id="btn-refresh-analytics" title="Recalcular métricas em tempo real">
+              <span class="refresh-icon" id="refresh-icon-spinner">🔄</span> Sincronizar
+            </button>
+
+            <button class="btn-admin btn-admin--primary" data-view="orders" id="dash-view-orders-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              Gerenciar Pedidos
+            </button>
           </div>
         </div>
 
-        <!-- Tabela recentes -->
-        <div class="admin-card">
-          <div class="admin-card-header">
-            <h3 class="admin-card-title">Produtos Recentes</h3>
-            <button class="btn-admin btn-admin--outline" data-view="products" id="see-all-products">Ver todos</button>
+        <!-- 1. CARDS DE KPIS EXECUTIVOS (MÉTRICAS-CHAVE) -->
+        <div class="analytics-kpi-grid">
+          <!-- Card 1: Faturamento Bruto (GMV) -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Faturamento Bruto (GMV)</span>
+              <div class="kpi-icon-wrap kpi-icon--gold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-total-revenue">R$ 0,00</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag" id="kpi-orders-count">0 pedidos</span>
+              <span class="kpi-hint">Volume total gerado</span>
+            </div>
           </div>
-          <div id="dashboard-table-wrap"></div>
+
+          <!-- Card 2: Faturamento Confirmado (Receita Líquida Realizada) -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Receita Confirmada</span>
+              <div class="kpi-icon-wrap kpi-icon--green">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value kpi-value--green" id="kpi-confirmed-revenue">R$ 0,00</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag kpi-tag--green" id="kpi-confirmed-count">0 pagos/enviados</span>
+              <span class="kpi-hint">Pedidos liquidados</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Ticket Médio (AOV - Average Order Value) -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Ticket Médio (AOV)</span>
+              <div class="kpi-icon-wrap kpi-icon--blue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-aov">R$ 0,00</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag" id="kpi-items-per-order">0.0 itens/pedido</span>
+              <span class="kpi-hint">Gasto médio por pedido</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Taxa de Conversão do Funil -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Taxa de Conversão</span>
+              <div class="kpi-icon-wrap kpi-icon--purple">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-conversion-rate">0.0%</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag" id="kpi-pending-count">0 pendentes</span>
+              <span class="kpi-hint">Taxa de aprovação</span>
+            </div>
+          </div>
+
+          <!-- Card 5: Unidades Vendidas -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Itens Vendidos</span>
+              <div class="kpi-icon-wrap kpi-icon--red">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-units-sold">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag" id="kpi-active-catalog">0 produtos ativos</span>
+              <span class="kpi-hint">Volume total de saída</span>
+            </div>
+          </div>
+
+          <!-- Card 6: Clientes Únicos / Base -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Base de Compradores</span>
+              <div class="kpi-icon-wrap kpi-icon--cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-unique-customers">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-tag" id="kpi-avg-ltv">LTV R$ 0,00</span>
+              <span class="kpi-hint">Clientes únicos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. DIAGNÓSTICOS DO ANALISTA DE DADOS (INSIGHTS AUTOMATIZADOS) -->
+        <div class="analytics-insights-section">
+          <div class="insights-header">
+            <div class="insights-title-wrap">
+              <span class="insights-badge">🧠 DATA ANALYST INSIGHTS</span>
+              <h3 class="insights-title">Diagnósticos & Recomendações Estratégicas</h3>
+            </div>
+            <span class="insights-sub">Análise algorítmica em tempo real sobre conversão, catálogo e clientes</span>
+          </div>
+
+          <div class="analytics-insights-grid" id="analytics-insights-container">
+            <p style="padding:1.5rem;text-align:center;color:var(--text-muted)">Processando dados analíticos…</p>
+          </div>
+        </div>
+
+        <!-- 3. GRÁFICOS ANALÍTICOS (CHART.JS) -->
+        <div class="analytics-charts-grid">
+          <!-- Gráfico 1: Evolução Temporal de Vendas -->
+          <div class="admin-card chart-card chart-card--wide">
+            <div class="admin-card-header chart-card-header">
+              <div>
+                <h3 class="admin-card-title">Evolução Temporal de Vendas</h3>
+                <p class="chart-subtitle">Faturamento e frequência de pedidos registrados</p>
+              </div>
+              <div class="chart-legend-badge" id="chart-sales-total-badge">R$ 0,00</div>
+            </div>
+            <div class="chart-container" style="position:relative;height:300px;padding:1rem;">
+              <canvas id="chart-sales-timeline"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 2: Status do Funil de Pedidos -->
+          <div class="admin-card chart-card">
+            <div class="admin-card-header chart-card-header">
+              <div>
+                <h3 class="admin-card-title">Funil & Status dos Pedidos</h3>
+                <p class="chart-subtitle">Distribuição por estágio do pedido</p>
+              </div>
+            </div>
+            <div class="chart-container" style="position:relative;height:300px;padding:1rem;">
+              <canvas id="chart-order-status"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 3: Curva ABC - Top Produtos por Receita -->
+          <div class="admin-card chart-card">
+            <div class="admin-card-header chart-card-header">
+              <div>
+                <h3 class="admin-card-title">Top 5 Produtos Mais Vendidos</h3>
+                <p class="chart-subtitle">Curva ABC por faturamento gerado</p>
+              </div>
+            </div>
+            <div class="chart-container" style="position:relative;height:300px;padding:1rem;">
+              <canvas id="chart-top-products"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 4: Meios de Pagamento Utilizados -->
+          <div class="admin-card chart-card">
+            <div class="admin-card-header chart-card-header">
+              <div>
+                <h3 class="admin-card-title">Canais & Meios de Pagamento</h3>
+                <p class="chart-subtitle">Preferência de fechamento dos compradores</p>
+              </div>
+            </div>
+            <div class="chart-container" style="position:relative;height:300px;padding:1rem;">
+              <canvas id="chart-payment-methods"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 5: Mix de Categorias -->
+          <div class="admin-card chart-card">
+            <div class="admin-card-header chart-card-header">
+              <div>
+                <h3 class="admin-card-title">Mix de Categorias</h3>
+                <p class="chart-subtitle">Participação percentual por categoria</p>
+              </div>
+            </div>
+            <div class="chart-container" style="position:relative;height:300px;padding:1rem;">
+              <canvas id="chart-category-mix"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. TABELAS DE DETALHAMENTO ANALÍTICO -->
+        <div class="analytics-tables-grid">
+          <!-- Tabela Performance de Produtos (Curva ABC Completa) -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h3 class="admin-card-title">Performance de Catálogo & Curva ABC</h3>
+                <p class="chart-subtitle">Volume, preço médio, faturamento e share relativo de cada produto</p>
+              </div>
+            </div>
+            <div id="analytics-products-table-wrap">
+              <p style="padding:2rem;text-align:center;color:var(--text-muted)">Calculando métricas de produtos…</p>
+            </div>
+          </div>
+
+          <!-- Tabela Performance de Clientes / Compradores -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h3 class="admin-card-title">Ranking de Compradores & Cidades</h3>
+                <p class="chart-subtitle">Mapeamento de clientes de alto valor (LTV) e localização</p>
+              </div>
+            </div>
+            <div id="analytics-customers-table-wrap">
+              <p style="padding:2rem;text-align:center;color:var(--text-muted)">Calculando métricas de clientes…</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -202,6 +403,64 @@
         </div>
         <div class="admin-card">
           <div id="products-table-wrap"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════ -->
+      <!--  VIEW: CATEGORIAS                      -->
+      <!-- ══════════════════════════════════════ -->
+      <section class="admin-view hidden" id="view-categories">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Gerenciar Categorias</h2>
+            <p class="view-subtitle">Crie novas categorias para organizar seus produtos e criar filtros na loja.</p>
+          </div>
+          <button class="btn-admin btn-admin--primary" id="btn-open-category-modal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            Nova Categoria
+          </button>
+        </div>
+
+        <div class="admin-card" style="margin-bottom:1.5rem">
+          <form id="new-category-inline-form" style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="flex:1;min-width:240px;margin-bottom:0">
+              <label class="form-label" for="new-cat-input-inline">Nome da Nova Categoria</label>
+              <input type="text" id="new-cat-input-inline" class="form-input" placeholder="Ex: Hipercalórico, Creatinas, Barras…" required />
+            </div>
+            <button type="submit" class="btn-admin btn-admin--primary" style="height:44px;white-space:nowrap">
+              ➕ Cadastrar Categoria
+            </button>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3 class="admin-card-title">Categorias Cadastradas</h3>
+            <span style="font-size:0.82rem;color:var(--text-muted)" id="categories-count-badge">0 categorias</span>
+          </div>
+          <div id="categories-table-wrap">
+            <p style="padding:2rem;text-align:center;color:var(--text-muted)">Carregando categorias…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════ -->
+      <!--  VIEW: PEDIDOS & VENDAS                -->
+      <!-- ══════════════════════════════════════ -->
+      <section class="admin-view hidden" id="view-orders">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Pedidos & Vendas</h2>
+            <p class="view-subtitle">Acompanhe os pedidos gerados e status de pagamentos.</p>
+          </div>
+          <button class="btn-admin btn-admin--outline" onclick="AdminOrders.render()">
+            🔄 Atualizar
+          </button>
+        </div>
+        <div class="admin-card">
+          <div id="orders-table-wrap">
+            <p style="padding:2rem;text-align:center;color:var(--text-muted)">Carregando pedidos…</p>
+          </div>
         </div>
       </section>
 
@@ -234,15 +493,14 @@
               <!-- Categoria + Preço -->
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label" for="prod-categoria">Categoria</label>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label class="form-label" for="prod-categoria" style="margin-bottom:0">Categoria</label>
+                    <button type="button" id="btn-quick-add-cat" style="background:none;border:none;color:var(--red);font-size:0.8rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:0.25rem;">
+                      ➕ Nova Categoria
+                    </button>
+                  </div>
                   <select id="prod-categoria" class="form-input form-select" required>
                     <option value="" disabled selected>Selecione…</option>
-                    <option value="proteina">Proteína</option>
-                    <option value="pretreino">Pré-Treino</option>
-                    <option value="aminoacido">Aminoácido</option>
-                    <option value="vitamina">Vitamina</option>
-                    <option value="queimador">Queimador</option>
-                    <option value="outro">Outro</option>
                   </select>
                 </div>
                 <div class="form-group">
@@ -275,14 +533,192 @@
                 <textarea id="prod-descricao" class="form-input form-textarea" placeholder="Descreva o produto, benefícios, modo de uso…" required></textarea>
               </div>
 
-              <!-- ── IMAGENS (até 4) ── -->
-              <div class="form-group">
-                <label class="form-label">Imagens do Produto <span class="label-optional">(até 4 — use ImgBB.com para hospedar)</span></label>
-                <input type="url" id="prod-imagem-1" class="form-input" placeholder="🖼️ Imagem 1 — Principal (obrigatória)" style="margin-bottom:.5rem" />
-                <input type="url" id="prod-imagem-2" class="form-input" placeholder="🖼️ Imagem 2 (opcional)" style="margin-bottom:.5rem" />
-                <input type="url" id="prod-imagem-3" class="form-input" placeholder="🖼️ Imagem 3 (opcional)" style="margin-bottom:.5rem" />
-                <input type="url" id="prod-imagem-4" class="form-input" placeholder="🖼️ Imagem 4 (opcional)" />
-                <p class="form-hint" style="margin-top:.5rem">Cole as URLs das imagens. Suba suas fotos grátis em <a href="https://imgbb.com" target="_blank" rel="noopener" style="color:var(--red)">imgbb.com</a> e cole o link direto aqui.</p>
+              <!-- ── IMAGENS (até 8) ── -->
+              <div class="form-group image-manager-group">
+                <div class="image-manager-header">
+                  <div>
+                    <label class="form-label" style="margin-bottom:0.15rem">Imagens do Produto <span class="label-optional">(até 8 imagens individuais)</span></label>
+                    <span class="image-manager-sub">Compatível com Google Drive, Dropbox, Imgur, links diretos ou upload do computador/celular</span>
+                  </div>
+                  <button type="button" class="btn-admin btn-admin--sm btn-admin--outline" id="toggle-batch-images-btn" title="Colar múltiplos links de uma vez">
+                    📋 Colar múltiplos links
+                  </button>
+                </div>
+
+                <!-- Painel para colar múltiplos links de uma vez -->
+                <div class="batch-images-panel" id="batch-images-panel" style="display:none;">
+                  <label class="form-label" style="font-size:0.8rem;">Cole vários links juntos (separados por quebra de linha ou vírgula):</label>
+                  <textarea id="batch-images-input" class="form-input form-textarea" style="min-height:80px;font-size:0.85rem;" placeholder="https://drive.google.com/file/d/...&#10;https://drive.google.com/file/d/..."></textarea>
+                  <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                    <button type="button" class="btn-admin btn-admin--sm btn-admin--primary" id="apply-batch-images-btn">Distribuir nas 8 fotos</button>
+                    <button type="button" class="btn-admin btn-admin--sm btn-admin--outline" id="close-batch-images-btn">Fechar</button>
+                  </div>
+                </div>
+
+                <!-- Dica informativa sobre Google Drive sem plano pago -->
+                <div class="drive-tip-box">
+                  <div class="drive-tip-icon">💡</div>
+                  <div class="drive-tip-text">
+                    <strong>Links do Google Drive ou Upload Direto:</strong>
+                    Cole o link normal de compartilhamento. O sistema converte automaticamente em imagem direta!
+                    <em>Importante: No Google Drive, deixe o arquivo como <strong>"Qualquer pessoa com o link"</strong>.</em>
+                  </div>
+                </div>
+
+                <!-- Slots individuais com preview em tempo real (até 8 fotos) -->
+                <div class="image-slots-grid">
+                  <!-- Slot 1 -->
+                  <div class="image-slot-item" id="slot-item-1">
+                    <div class="slot-header">
+                      <span class="slot-badge slot-badge--main">Imagem 1 (Principal) *</span>
+                      <span class="slot-provider" id="slot-provider-1"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-1" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" required />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-1" data-slot="1" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="1" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-1">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 2 -->
+                  <div class="image-slot-item" id="slot-item-2">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 2 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-2"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-2" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-2" data-slot="2" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="2" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-2">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 3 -->
+                  <div class="image-slot-item" id="slot-item-3">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 3 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-3"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-3" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-3" data-slot="3" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="3" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-3">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 4 -->
+                  <div class="image-slot-item" id="slot-item-4">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 4 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-4"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-4" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-4" data-slot="4" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="4" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-4">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 5 -->
+                  <div class="image-slot-item" id="slot-item-5">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 5 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-5"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-5" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-5" data-slot="5" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="5" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-5">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 6 -->
+                  <div class="image-slot-item" id="slot-item-6">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 6 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-6"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-6" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-6" data-slot="6" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="6" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-6">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 7 -->
+                  <div class="image-slot-item" id="slot-item-7">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 7 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-7"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-7" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-7" data-slot="7" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="7" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-7">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+
+                  <!-- Slot 8 -->
+                  <div class="image-slot-item" id="slot-item-8">
+                    <div class="slot-header">
+                      <span class="slot-badge">Imagem 8 (Opcional)</span>
+                      <span class="slot-provider" id="slot-provider-8"></span>
+                    </div>
+                    <div class="slot-input-row">
+                      <input type="text" id="prod-imagem-8" class="form-input slot-url-input" placeholder="Cole o link ou suba do PC →" />
+                      <label class="btn-admin btn-admin--sm btn-admin--outline slot-upload-label" title="Escolher arquivo do computador" style="cursor:pointer;white-space:nowrap;padding:0.4rem 0.65rem;font-size:0.75rem;display:inline-flex;align-items:center;">
+                        📁 Subir Foto
+                        <input type="file" id="prod-file-8" data-slot="8" accept="image/*" style="display:none;" />
+                      </label>
+                      <button type="button" class="slot-clear-btn" data-slot="8" title="Limpar">✕</button>
+                    </div>
+                    <div class="slot-preview-box" id="slot-preview-8">
+                      <div class="slot-preview-empty">Nenhuma imagem definida</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Badge -->
@@ -338,22 +774,41 @@
     </div>
   </div>
 
+  <!-- MODAL: NOVA CATEGORIA -->
+  <div class="confirm-overlay" id="category-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+    <div class="confirm-dialog" style="max-width:440px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <h3 class="confirm-title" id="category-modal-title" style="margin-bottom:0">Nova Categoria</h3>
+        <button type="button" id="category-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.25rem;">
+        Crie uma nova categoria para classificar produtos e disponibilizar filtros automáticos de busca na loja.
+      </p>
+      <form id="category-modal-form">
+        <div class="form-group">
+          <label class="form-label" for="category-modal-input">Nome da Categoria</label>
+          <input type="text" id="category-modal-input" class="form-input" placeholder="Ex: Hipercalórico, Termogênico, Snacks..." required />
+        </div>
+        <div id="category-modal-error" style="color:#ff4444;font-size:0.85rem;margin-bottom:1rem;min-height:1rem"></div>
+        <div class="confirm-actions" style="justify-content:flex-end;">
+          <button type="button" class="btn-admin btn-admin--outline" id="category-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-admin btn-admin--primary" id="category-modal-submit">Salvar Categoria</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="admin-toast" id="admin-toast" role="status" aria-live="polite">
     <span class="admin-toast-icon" id="admin-toast-icon">✓</span>
     <span id="admin-toast-text">Operação realizada.</span>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!--  FIREBASE SDK (compat v10) — Auth + Firestore + Storage-->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <!-- Utilitários de Imagem e Configuração -->
+  <script src="image-backend.js"></script>
 
-  <!-- Configuração Firebase -->
-  <script src="firebase-config.js"></script>
+  <!-- Cliente API Node.js -->
+  <script src="api-client.js"></script>
 
   <!-- Admin Script -->
   <script src="admin.js"></script>

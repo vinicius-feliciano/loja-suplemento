@@ -1,0 +1,133 @@
+[
+  {
+    "id": "2NclOiNoJZpWFW4e0OCl",
+    "nome": "teste",
+    "categoria": "proteina",
+    "preco": 149,
+    "precoAntigo": 500,
+    "descricao": "muito bom",
+    "imagem": "https://down-br.img.susercontent.com/file/br-11134207-7qukw-lhz2l5e8rb7bdf",
+    "badge": "novo",
+    "badgeTipo": "red",
+    "estrelas": 5,
+    "avaliacoes": 5,
+    "ativo": true,
+    "criadoEm": "2026-06-29T00:12:00.954Z",
+    "imagens": [
+      "https://down-br.img.susercontent.com/file/br-11134207-7qukw-lhz2l5e8rb7bdf",
+      "https://benchpromos.com.br/_next/image?url=https%3A%2F%2Fi.imgur.com%2FIFtRkvh.png&w=3840&q=75"
+    ]
+  },
+  {
+    "id": "6Oi4gVzWbsiY4eWAxcii",
+    "nome": "teste4",
+    "categoria": "queimador",
+    "preco": 222,
+    "precoAntigo": 300.88,
+    "descricao": "muito bom",
+    "imagem": "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp",
+    "badge": "novo",
+    "badgeTipo": "green",
+    "estrelas": 5,
+    "avaliacoes": 1,
+    "ativo": true,
+    "criadoEm": "2026-06-30T01:53:22.766Z",
+    "imagens": [
+      "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp"
+    ]
+  },
+  {
+    "id": "R6dzBbb4b3CkFC19w4mw",
+    "nome": "teste5",
+    "categoria": "pretreino",
+    "preco": 222,
+    "precoAntigo": 1111,
+    "descricao": "bom",
+    "imagem": "https://benchpromos.com.br/_next/image?url=https%3A%2F%2Fi.imgur.com%2FIFtRkvh.png&w=3840&q=75",
+    "badge": "novo",
+    "badgeTipo": "green",
+    "estrelas": 5,
+    "avaliacoes": 44,
+    "ativo": true,
+    "criadoEm": "2026-06-30T01:54:04.690Z",
+    "imagens": [
+      "https://benchpromos.com.br/_next/image?url=https%3A%2F%2Fi.imgur.com%2FIFtRkvh.png&w=3840&q=75"
+    ]
+  },
+  {
+    "id": "l6g9udKpEnYDsMSiBfZR",
+    "nome": "teste8",
+    "categoria": "outro",
+    "preco": 1111,
+    "precoAntigo": 2222,
+    "descricao": "teste",
+    "imagem": "https://lh3.googleusercontent.com/d/1UqjM3rwUjYyVv2d-5dc7gIMHgW78iPwU",
+    "badge": "novo",
+    "badgeTipo": "green",
+    "estrelas": 5,
+    "avaliacoes": 3,
+    "ativo": true,
+    "criadoEm": "2026-06-30T02:06:24.151Z",
+    "imagens": [
+      "https://lh3.googleusercontent.com/d/1UqjM3rwUjYyVv2d-5dc7gIMHgW78iPwU"
+    ]
+  },
+  {
+    "id": "nJAYNIKNCCPZifXzGzdN",
+    "nome": "teste2",
+    "categoria": "pretreino",
+    "preco": 777,
+    "precoAntigo": 4444,
+    "descricao": "ok",
+    "imagem": "https://lh3.googleusercontent.com/d/1UqjM3rwUjYyVv2d-5dc7gIMHgW78iPwU",
+    "badge": "novo",
+    "badgeTipo": "red",
+    "estrelas": 5,
+    "avaliacoes": 5,
+    "ativo": true,
+    "criadoEm": "2026-06-30T01:52:42.774Z",
+    "imagens": [
+      "https://lh3.googleusercontent.com/d/1UqjM3rwUjYyVv2d-5dc7gIMHgW78iPwU"
+    ]
+  },
+  {
+    "id": "rYD6YBIBXm9J6yuLFnEt",
+    "nome": "teste790",
+    "categoria": "vitamina",
+    "preco": 4.88,
+    "precoAntigo": 2222,
+    "descricao": "nice",
+    "imagem": "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp",
+    "badge": "",
+    "badgeTipo": "red",
+    "estrelas": 5,
+    "avaliacoes": 5,
+    "ativo": true,
+    "criadoEm": "2026-06-30T02:06:03.890Z",
+    "imagens": [
+      "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp",
+      "https://down-br.img.susercontent.com/file/br-11134207-7qukw-lhz2l5e8rb7bdf",
+      "https://benchpromos.com.br/_next/image?url=https%3A%2F%2Fi.imgur.com%2FIFtRkvh.png&w=3840&q=75",
+      "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp"
+    ]
+  },
+  {
+    "id": "vPohq5ZW43T1cRgwFhEP",
+    "nome": "teste3",
+    "categoria": "aminoacido",
+    "preco": 44.44,
+    "precoAntigo": 99.99,
+    "descricao": "otimo",
+    "imagem": "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp",
+    "badge": "",
+    "badgeTipo": "red",
+    "estrelas": 5,
+    "avaliacoes": 2,
+    "ativo": true,
+    "criadoEm": "2026-06-30T01:51:52.275Z",
+    "imagens": [
+      "https://http2.mlstatic.com/D_NQ_NP_824274-MLA98770399871_112025-O.webp",
+      "https://benchpromos.com.br/_next/image?url=https%3A%2F%2Fi.imgur.com%2FIFtRkvh.png&w=3840&q=75"
+    ]
+  }
+]
