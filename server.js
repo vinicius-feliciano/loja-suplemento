@@ -30,7 +30,7 @@ try {
 const mongo = require('./mongoose-db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'novaera_customer_jwt_secret_2026_supersecure';
 
 // Diretórios locais
