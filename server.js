@@ -906,14 +906,19 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Tratamento global de erros para evitar queda do container
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
+
 // Inicialização do servidor
 async function startServer() {
-  const connected = await mongo.connectMongo();
-  if (!connected) {
-    console.error('❌ Falha crítica ao conectar no MongoDB Atlas. Verifique MONGODB_URI.');
-  }
-
-  app.listen(PORT, () => {
+  // Inicia o servidor HTTP imediatamente na porta e interface 0.0.0.0 (obrigatório para Render/Cloud)
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n======================================================`);
     console.log(`🚀 Servidor Nova Era Nutrition ativo na porta ${PORT}!`);
     console.log(`🍃 Banco de Dados na Nuvem: MongoDB Atlas`);
@@ -923,6 +928,16 @@ async function startServer() {
     console.log(`💳 Meios de Pagamento: Preparados (Mercado Pago / PIX)`);
     console.log(`======================================================\n`);
   });
+
+  // Conecta ao MongoDB Atlas em segundo plano
+  try {
+    const connected = await mongo.connectMongo();
+    if (!connected) {
+      console.warn('⚠️ [MongoDB] Verifique a variável MONGODB_URI e o IP Access (0.0.0.0/0) no MongoDB Atlas.');
+    }
+  } catch (err) {
+    console.error('❌ Erro ao conectar no MongoDB Atlas:', err.message);
+  }
 }
 
 startServer();
