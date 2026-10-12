@@ -1713,3 +1713,13 @@ input, textarea, select { font-family: inherit; }
   color: #f59e0b;
 }
 
+/* ── PROTEÇÃO CONTRA VAZAMENTO VISUAL ANTES DO LOGIN ── */
+.admin-layout,
+.admin-layout[hidden],
+#admin-layout:not(.logged-in) {
+  display: none !important;
+}
+
+.admin-layout.logged-in {
+  display: grid !important;
+}

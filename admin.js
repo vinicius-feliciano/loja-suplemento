@@ -77,7 +77,11 @@ const Auth = {
 
   _onLoggedIn(user) {
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-layout').hidden        = false;
+    const layout = document.getElementById('admin-layout');
+    if (layout) {
+      layout.hidden = false;
+      layout.classList.add('logged-in');
+    }
 
     // Exibir email do admin no topbar
     const usernameEl = document.getElementById('topbar-username');
@@ -92,7 +96,11 @@ const Auth = {
 
   _onLoggedOut() {
     document.getElementById('login-screen').style.display = '';
-    document.getElementById('admin-layout').hidden        = true;
+    const layout = document.getElementById('admin-layout');
+    if (layout) {
+      layout.hidden = true;
+      layout.classList.remove('logged-in');
+    }
     this._stopProductsListener();
   },
 
@@ -347,7 +355,7 @@ const ImageUpload = {
   getPreviewUrl() {
     if (this.uploadMode === 'file') {
       const prevEl = document.getElementById('img-file-preview');
-      return prevEl?.src && !prevEl.src.endsWith('admin.html') ? prevEl.src : '';
+      return prevEl?.src && !prevEl.src.endsWith('.html') ? prevEl.src : '';
     }
     return document.getElementById('prod-imagem-url')?.value.trim() || '';
   },

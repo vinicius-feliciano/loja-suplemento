@@ -90,7 +90,7 @@ npm start
 
 ### 5. Acessar a Aplicação
 - **Vitrine Virtual:** [http://localhost:3000](http://localhost:3000)
-- **Painel Administrativo:** [http://localhost:3000/admin.html](http://localhost:3000/admin.html)
+- **Painel Administrativo:** [http://localhost:3000/gestao-interna](http://localhost:3000/gestao-interna)
 
 ---
 

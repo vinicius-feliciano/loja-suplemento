@@ -96,14 +96,26 @@ app.use((req, res, next) => {
     '/package.json',
     '/package-lock.json',
     '/iniciar-servidor.bat',
-    '/data'
+    '/data',
+    '/admin.html',
+    '/admin'
   ];
 
   if (blockedFiles.some(blocked => normalizedPath === blocked || normalizedPath.startsWith(blocked + '/'))) {
-    return res.status(403).json({ error: 'Acesso negado a arquivos internos do servidor.' });
+    return res.status(404).sendFile(path.join(__dirname, 'index.html'));
+  }
+
+  // Bloqueia acesso direto ao arquivo .html da gestão interna (deve ser acessado pela rota limpa /gestao-interna)
+  if (normalizedPath === '/gestao-interna.html') {
+    return res.redirect(301, '/gestao-interna');
   }
 
   next();
+});
+
+// Rota personalizada e exclusiva do painel de administração
+app.get('/gestao-interna', (req, res) => {
+  res.sendFile(path.join(__dirname, 'gestao-interna.html'));
 });
 
 // Servir arquivos enviados e arquivos estáticos públicos do site
@@ -924,7 +936,7 @@ async function startServer() {
     console.log(`🍃 Banco de Dados na Nuvem: MongoDB Atlas`);
     console.log(`👤 Autenticação de Clientes: Ativa (Local + Google)`);
     console.log(`🛒 Vitrine: http://localhost:${PORT}`);
-    console.log(`🛡️  Admin:   http://localhost:${PORT}/admin.html`);
+    console.log(`🛡️  Admin:   http://localhost:${PORT}/gestao-interna`);
     console.log(`💳 Meios de Pagamento: Preparados (Mercado Pago / PIX)`);
     console.log(`======================================================\n`);
   });
